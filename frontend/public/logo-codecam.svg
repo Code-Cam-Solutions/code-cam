@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="cc-title cc-desc">
+  <title id="cc-title">CodeCam</title>
+  <desc id="cc-desc">Logotipo do CodeCam: câmera estilizada em roxo</desc>
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#6C5CE7"/>
+  <!-- Camera body -->
+  <rect x="18" y="36" width="64" height="40" rx="8" ry="8" fill="white"/>
+  <!-- Camera lens outer -->
+  <circle cx="50" cy="56" r="14" fill="#6C5CE7"/>
+  <!-- Camera lens inner -->
+  <circle cx="50" cy="56" r="8" fill="white"/>
+  <!-- Camera lens center -->
+  <circle cx="50" cy="56" r="4" fill="#6C5CE7"/>
+  <!-- Viewfinder bump -->
+  <rect x="36" y="28" width="28" height="12" rx="5" ry="5" fill="white"/>
+  <!-- Flash dot -->
+  <circle cx="72" cy="44" r="4" fill="#6C5CE7"/>
+</svg>

@@ -1,0 +1,213 @@
+@import "tailwindcss";
+
+@theme {
+  --color-codecam: #6C5CE7;
+  --color-codecam-light: #8B5CF6;
+  --color-background: #19191d;
+  --color-surface: #1f1f26;
+  --color-surface-2: #2a2a35;
+  --color-border: #303036;
+  --color-text-muted: #8b8b92;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+
+  --font-family-dyslexic: "OpenDyslexic", sans-serif;
+}
+
+/* ─── OpenDyslexic font face ─────────────────────────────────────────── */
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf")
+    format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf")
+    format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Base global styles ─────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-background);
+  color: #ffffff;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ─── Focus visible ──────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 3px solid var(--color-codecam);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Font size scale ────────────────────────────────────────────────── */
+:root {
+  --font-scale: 1;
+  --text-xs:   calc(0.75rem  * var(--font-scale));
+  --text-sm:   calc(0.875rem * var(--font-scale));
+  --text-base: calc(1rem     * var(--font-scale));
+  --text-lg:   calc(1.125rem * var(--font-scale));
+  --text-xl:   calc(1.25rem  * var(--font-scale));
+  --text-2xl:  calc(1.5rem   * var(--font-scale));
+  --text-3xl:  calc(1.875rem * var(--font-scale));
+}
+
+html[data-font-size="sm"] { --font-scale: 0.875; }
+html[data-font-size="md"] { --font-scale: 1;     }
+html[data-font-size="lg"] { --font-scale: 1.125; }
+html[data-font-size="xl"] { --font-scale: 1.25;  }
+
+/* Apply to all text elements */
+html {
+  font-size: var(--text-base);
+}
+
+p, span, div, li, td, th, label, input, textarea, select, button {
+  font-size: var(--text-base);
+}
+
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+
+/* ─── OpenDyslexic mode ──────────────────────────────────────────────── */
+html.dyslexic,
+html.dyslexic * {
+  font-family: "OpenDyslexic", sans-serif !important;
+  letter-spacing: 0.05em;
+  word-spacing: 0.1em;
+  line-height: 1.8;
+}
+
+/* ─── High contrast mode ─────────────────────────────────────────────── */
+html.high-contrast {
+  --color-background: #000000;
+  --color-surface: #111111;
+  --color-surface-2: #1a1a1a;
+  --color-border: #ffffff;
+  --color-text-muted: #cccccc;
+  --color-codecam: #ffff00;
+  --color-codecam-light: #ffff00;
+}
+
+html.high-contrast body {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+html.high-contrast button,
+html.high-contrast a {
+  border: 2px solid #ffffff;
+}
+
+html.high-contrast button:focus-visible,
+html.high-contrast a:focus-visible,
+html.high-contrast [tabindex]:focus-visible {
+  outline: 3px solid #ffff00;
+  outline-offset: 2px;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ─── Flashcard flip ─────────────────────────────────────────────────── */
+.flashcard-container {
+  perspective: 1000px;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+
+.flashcard-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-front,
+.flashcard-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flashcard-back {
+  transform: rotateY(180deg);
+}

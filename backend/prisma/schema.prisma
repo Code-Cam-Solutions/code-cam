@@ -1,0 +1,51 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  folders   Folder[]
+  contents  Content[]
+}
+
+model Folder {
+  id        String    @id @default(uuid())
+  name      String
+  color     String    @default("#6C5CE7")
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contents  Content[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Content {
+  id         String   @id @default(uuid())
+  title      String
+  summary    String   @db.Text
+  topics     Json
+  flashcards Json
+  rawText    String   @db.Text
+  imageUrl   String?
+  folderId   String?
+  folder     Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([folderId])
+}

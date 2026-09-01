@@ -1,0 +1,253 @@
+# CodeCam 📷
+
+Plataforma web mobile-first de estudos com acessibilidade, IA e organização de materiais.
+
+## Visão Geral
+
+O CodeCam permite que estudantes fotografem materiais de estudo (lousas, cadernos, livros) e recebam automaticamente resumos, tópicos principais e flashcards gerados por inteligência artificial. A acessibilidade é o núcleo da experiência, com suporte a fontes ajustáveis, OpenDyslexic, alto contraste e leitura em voz alta.
+
+**Stack:**
+- **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS v4
+- **Backend:** NestJS + Prisma + PostgreSQL
+- **IA:** Google Gemini 1.5 Flash
+- **Deploy:** Vercel (frontend) + Railway (backend + banco)
+
+---
+
+## Pré-requisitos
+
+- Node.js 20+
+- PostgreSQL (local ou via Docker)
+- Conta no [Google AI Studio](https://aistudio.google.com/) para obter a chave do Gemini
+
+---
+
+## Configuração Local
+
+### 1. Clone o repositório
+
+```bash
+git clone <url-do-repositorio>
+cd codecam
+```
+
+### 2. Configure o Backend
+
+```bash
+cd backend
+
+# Instale as dependências
+npm install
+
+# Copie o arquivo de variáveis de ambiente
+cp .env.example .env
+```
+
+Edite o arquivo `backend/.env` com seus valores:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/codecam?schema=public
+JWT_SECRET=troque-por-uma-chave-segura-e-longa
+GEMINI_API_KEY=sua-chave-do-gemini-aqui
+PORT=3000
+FRONTEND_URL=http://localhost:5173
+```
+
+Execute as migrations do banco de dados:
+
+```bash
+# Cria o banco e aplica as migrations
+npx prisma migrate dev --name init
+
+# Gera o Prisma Client
+npx prisma generate
+```
+
+Inicie o backend:
+
+```bash
+npm run start:dev
+```
+
+O backend estará disponível em `http://localhost:3000`.
+
+### 3. Configure o Frontend
+
+```bash
+cd ../frontend
+
+# Instale as dependências
+npm install
+
+# Copie o arquivo de variáveis de ambiente
+cp .env.example .env
+```
+
+Edite o arquivo `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+Inicie o frontend:
+
+```bash
+npm run dev
+```
+
+O frontend estará disponível em `http://localhost:5173`.
+
+---
+
+## Variáveis de Ambiente
+
+### Backend (`backend/.env`)
+
+| Variável | Descrição | Obrigatório |
+|----------|-----------|-------------|
+| `DATABASE_URL` | URL de conexão com PostgreSQL | ✅ |
+| `JWT_SECRET` | Chave secreta para assinar tokens JWT | ✅ |
+| `GEMINI_API_KEY` | Chave de API do Google Gemini | ✅ |
+| `PORT` | Porta do servidor (padrão: 3000) | ❌ |
+| `FRONTEND_URL` | URL do frontend para CORS | ❌ |
+
+### Frontend (`frontend/.env`)
+
+| Variável | Descrição | Obrigatório |
+|----------|-----------|-------------|
+| `VITE_API_URL` | URL base do backend | ✅ |
+
+---
+
+## Obter chave do Google Gemini
+
+1. Acesse [Google AI Studio](https://aistudio.google.com/)
+2. Faça login com sua conta Google
+3. Clique em **“Get API key”** no menu lateral
+4. Crie uma nova chave e copie-a
+5. Cole em `backend/.env` como `GEMINI_API_KEY=sua-chave`
+
+> ⚠️ **Nunca** exponha a chave do Gemini no frontend. Ela deve permanecer somente no backend.
+
+---
+
+## Deploy
+
+### Backend no Railway
+
+1. Acesse [railway.app](https://railway.app) e faça login
+2. Clique em **New Project** → **Deploy from GitHub repo**
+3. Selecione o repositório e configure o **Root Directory** como `backend`
+4. Adicione um banco PostgreSQL: **New** → **Database** → **PostgreSQL**
+5. Configure as variáveis de ambiente no painel do Railway:
+   - `DATABASE_URL` (copiada automaticamente ao linkar o banco)
+   - `JWT_SECRET`
+   - `GEMINI_API_KEY`
+   - `FRONTEND_URL` (URL do Vercel após o deploy)
+6. Em **Settings** → **Build Command**: `npm install && npx prisma generate && npx prisma migrate deploy && npm run build`
+7. **Start Command**: `npm run start:prod`
+
+### Frontend no Vercel
+
+1. Acesse [vercel.com](https://vercel.com) e faça login
+2. Clique em **New Project** → importe do GitHub
+3. Configure o **Root Directory** como `frontend`
+4. Adicione a variável de ambiente:
+   - `VITE_API_URL`: URL do backend no Railway (ex: `https://codecam-backend.up.railway.app`)
+5. Clique em **Deploy**
+
+### Após o deploy
+
+1. Copie a URL do frontend (ex: `https://codecam.vercel.app`)
+2. Atualize a variável `FRONTEND_URL` no Railway com essa URL
+3. Gere o QR Code da URL do frontend usando qualquer gerador (ex: [qr-code-generator.com](https://www.qr-code-generator.com/))
+
+---
+
+## Estrutura do Projeto
+
+```
+codecam/
+├── frontend/                  # React + Vite + TypeScript + Tailwind
+│   ├── src/
+│   │   ├── App.tsx            # Roteamento principal
+│   │   ├── main.tsx           # Entry point
+│   │   ├── index.css          # Estilos globais + acessibilidade
+│   │   ├── components/        # Componentes reutilizáveis
+│   │   │   ├── TTSButton.tsx  # Botão de leitura em voz alta
+│   │   │   ├── Button.tsx     # Botão acessível base
+│   │   │   ├── Navbar.tsx     # Barra de navegação superior
+│   │   │   ├── BottomNav.tsx  # Navegação inferior (tabs)
+│   │   │   ├── Toast.tsx      # Notificações acessíveis
+│   │   │   └── SkeletonCard.tsx
+│   │   ├── context/
+│   │   │   ├── AccessibilityContext.tsx  # Estado global de acessibilidade
+│   │   │   └── AuthContext.tsx           # Estado de autenticação
+│   │   ├── hooks/
+│   │   │   ├── useCamera.ts   # Acesso à câmera
+│   │   │   └── useTTS.ts      # Text-to-speech
+│   │   ├── pages/
+│   │   │   ├── LoginPage.tsx
+│   │   │   ├── HomePage.tsx
+│   │   │   ├── CameraPage.tsx
+│   │   │   ├── ProcessingPage.tsx
+│   │   │   ├── ResultPage.tsx
+│   │   │   ├── FlashcardsPage.tsx
+│   │   │   ├── FoldersPage.tsx
+│   │   │   ├── FolderDetailPage.tsx
+│   │   │   ├── ContentDetailPage.tsx
+│   │   │   └── SettingsPage.tsx
+│   │   └── services/
+│   │       └── api.ts         # Cliente HTTP para o backend
+│   └── public/
+│       └── logo-codecam.svg
+│
+└── backend/                   # NestJS + Prisma + PostgreSQL
+    ├── src/
+    │   ├── main.ts
+    │   ├── app.module.ts
+    │   ├── health/            # GET /health
+    │   ├── prisma/            # PrismaService global
+    │   ├── auth/              # POST /auth/login (JWT)
+    │   ├── scan/              # POST /scan (Gemini)
+    │   ├── folders/           # CRUD /folders
+    │   └── contents/          # CRUD /contents
+    └── prisma/
+        └── schema.prisma
+```
+
+---
+
+## Fluxo Principal
+
+1. Acesse o CodeCam pelo QR Code (URL HTTPS)
+2. Digite seu nome ou apelido para entrar
+3. *(Opcional)* Configure acessibilidade em **Ajustes**
+4. Toque em **Escanear agora** na Home
+5. Permita o acesso à câmera e fotografe o material
+6. Aguarde a análise da IA
+7. Visualize título, resumo, tópicos e flashcards
+8. Use os botões 🔊 para ouvir qualquer conteúdo
+9. Inicie uma sessão de flashcards e avalie seu desempenho
+10. Salve o material em uma pasta
+
+---
+
+## Funcionalidades de Acessibilidade
+
+| Recurso | Descrição |
+|---------|-----------|
+| Tamanho de fonte | 4 níveis: Pequena, Normal, Grande, Extra grande |
+| OpenDyslexic | Fonte especializada para dislexia |
+| Alto contraste | Cores de alto contraste para baixa visão |
+| Leitura em voz alta | Botão por elemento via Web Speech API |
+| Velocidade de TTS | Ajustável de 0.5x a 2x |
+| Foco visível | Outline em todos os elementos interativos |
+| ARIA labels | Todos os elementos com descrições acessíveis |
+| Tamanho mínimo | Botões com 48px de altura mínima |
+
+---
+
+## Licença
+
+MIT
