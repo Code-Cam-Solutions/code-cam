@@ -1,3 +1,5 @@
 .env
 node_modules/
 dist/
+# Cache de compilação incremental do TypeScript.
+*.tsbuildinfo
