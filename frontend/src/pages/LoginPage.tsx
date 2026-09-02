@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, BookOpen, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { login } from "../services/api";
-import { Button } from "../components/Button";
-import { BookOpen } from "lucide-react";
+import { Button, Card, Input } from "../design-system";
 
 export function LoginPage() {
   const [name, setName] = useState("");
@@ -33,98 +33,75 @@ export function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="w-full max-w-sm animate-fade-in">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-            style={{ backgroundColor: "var(--color-codecam)" }}
-          >
-            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="w-12 h-12" />
-          </div>
-          <h1
-            className="font-bold text-white mb-1"
-            style={{ fontSize: "var(--text-3xl)", color: "var(--color-codecam)" }}
-          >
-            CodeCam
-          </h1>
-          <p style={{ color: "var(--color-text-muted)", fontSize: "var(--text-base)" }}>
-            Escanei, aprenda, evolua.
-          </p>
-        </div>
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-bg">
+      {/* Halo de acento atrás da marca. Puramente decorativo: acompanha o tema
+          porque é o próprio token de acento esmaecido, não uma cor fixa. */}
+      <div
+        className="pointer-events-none absolute -top-32 left-1/2 size-80 -translate-x-1/2 rounded-full bg-accent-subtle blur-3xl"
+        aria-hidden="true"
+      />
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-5">
-            <label
-              htmlFor="name"
-              className="block font-medium text-white mb-2"
-              style={{ fontSize: "var(--text-base)" }}
+      <main
+        id="main-content"
+        className="relative flex flex-1 flex-col items-center justify-center px-6 py-12"
+      >
+        <div className="w-full max-w-sm animate-rise-in">
+          <div className="mb-9 flex flex-col items-center text-center">
+            <span
+              className="mb-5 grid size-24 place-items-center rounded-full bg-accent-subtle"
+              aria-hidden="true"
             >
-              Como posso te chamar?
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Seu nome ou apelido"
-              autoComplete="name"
-              autoFocus
-              aria-required="true"
-              aria-invalid={!!error}
-              aria-describedby={error ? "name-error" : undefined}
-              className="w-full px-4 py-3 rounded-xl text-white placeholder:text-text-muted border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-codecam"
-              style={{
-                backgroundColor: "var(--color-surface)",
-                borderColor: error ? "var(--color-error)" : "var(--color-border)",
-                fontSize: "var(--text-base)",
-                minHeight: "48px",
-              }}
-            />
-            {error && (
-              <p
-                id="name-error"
-                role="alert"
-                className="mt-2"
-                style={{ color: "var(--color-error)", fontSize: "var(--text-sm)" }}
-              >
-                {error}
-              </p>
-            )}
+              <img src="/logo-codecam.svg" alt="" className="size-16" />
+            </span>
+
+            <h1 className="text-3xl font-bold text-accent">CodeCam</h1>
+            <p className="mt-2 text-base text-text-muted">Escaneie, aprenda, evolua.</p>
           </div>
 
-          <Button
-            type="submit"
-            loading={loading}
-            fullWidth
-            size="lg"
-            aria-label="Entrar no CodeCam"
-          >
-            Entrar
-          </Button>
-        </form>
+          <Card elevation="raised" padding="lg">
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+              <Input
+                label="Como posso te chamar?"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Seu nome ou apelido"
+                autoComplete="name"
+                autoFocus
+                aria-required="true"
+                icon={<User size={18} />}
+                // O campo vazio é validado no envio, então `error` só existe
+                // depois de uma tentativa — string vazia não é erro.
+                error={error === "" ? undefined : error}
+              />
 
-        {/* Info */}
-        <div
-          className="flex items-start gap-3 mt-8 p-4 rounded-xl"
-          style={{ backgroundColor: "var(--color-surface)" }}
-        >
-          <BookOpen
-            size={18}
-            aria-hidden="true"
-            style={{ color: "var(--color-codecam)", flexShrink: 0, marginTop: "2px" }}
-          />
-          <p style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-            Não é necessário senha. Basta digitar seu nome para começar a estudar com
-            acessibilidade.
-          </p>
+              <Button
+                type="submit"
+                loading={loading}
+                loadingLabel="Entrando…"
+                fullWidth
+                size="lg"
+                iconAfter={<ArrowRight size={20} />}
+                aria-label="Entrar no CodeCam"
+              >
+                Entrar
+              </Button>
+            </form>
+          </Card>
+
+          <Card padding="lg" className="mt-4 flex items-start gap-3">
+            <span
+              className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent"
+              aria-hidden="true"
+            >
+              <BookOpen size={18} />
+            </span>
+            <p className="text-sm leading-relaxed text-text-muted">
+              Não é necessário senha. Basta digitar seu nome para começar a estudar com
+              acessibilidade.
+            </p>
+          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

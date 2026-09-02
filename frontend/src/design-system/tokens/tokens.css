@@ -1,0 +1,305 @@
+/**
+ * Tokens do design system CodeCam.
+ *
+ * Três camadas, e componentes só enxergam a terceira:
+ *
+ *   1. Escalas invariantes  — espaçamento, raio, tipografia, movimento
+ *   2. Valores por tema     — as cores cruas de cada combinação
+ *   3. Tokens semânticos    — `--ds-surface`, `--ds-text`… o que o código usa
+ *
+ * Um componente nunca cita um hex nem um valor de tema. Ele pede
+ * `--ds-text-muted` e o tema decide o que isso significa. É o que torna
+ * possível ter claro, escuro e alto contraste sem um `if` sequer na interface.
+ *
+ * A paleta não foi escolhida no olho: `validate-contrast.mjs` confere cada par
+ * que aparece junto na tela contra os limiares da WCAG 2.2, nas quatro
+ * combinações de tema. Alterar uma cor aqui exige rodar aquele script.
+ */
+
+/* ─── Escalas invariantes ─────────────────────────────────────────────────── */
+
+:root {
+  /* Tipografia — a razão entre os degraus é ~1.2 (terça menor), que dá
+     hierarquia perceptível sem saltos bruscos em tela de celular.
+     Tudo é multiplicado por --ds-font-scale, que o ajuste de tamanho de fonte
+     da acessibilidade controla. */
+  --ds-font-scale: 1;
+
+  --ds-text-2xs: calc(0.6875rem * var(--ds-font-scale));
+  --ds-text-xs: calc(0.75rem * var(--ds-font-scale));
+  --ds-text-sm: calc(0.875rem * var(--ds-font-scale));
+  --ds-text-base: calc(1rem * var(--ds-font-scale));
+  --ds-text-lg: calc(1.125rem * var(--ds-font-scale));
+  --ds-text-xl: calc(1.375rem * var(--ds-font-scale));
+  --ds-text-2xl: calc(1.75rem * var(--ds-font-scale));
+  --ds-text-3xl: calc(2.125rem * var(--ds-font-scale));
+  --ds-text-4xl: calc(2.625rem * var(--ds-font-scale));
+
+  --ds-leading-tight: 1.2;
+  --ds-leading-snug: 1.4;
+  --ds-leading-normal: 1.6;
+  --ds-leading-relaxed: 1.75;
+
+  --ds-tracking-tight: -0.02em;
+  --ds-tracking-normal: 0;
+  --ds-tracking-wide: 0.02em;
+
+  --ds-font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --ds-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ds-font-dyslexic: "OpenDyslexic", var(--ds-font-sans);
+
+  /* Espaçamento — base 4px. */
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+  --ds-space-8: 2rem;
+  --ds-space-10: 2.5rem;
+  --ds-space-12: 3rem;
+  --ds-space-16: 4rem;
+
+  /* Raio de canto. */
+  --ds-radius-sm: 0.5rem;
+  --ds-radius-md: 0.75rem;
+  --ds-radius-lg: 1rem;
+  --ds-radius-xl: 1.25rem;
+  --ds-radius-2xl: 1.75rem;
+  --ds-radius-full: 9999px;
+
+  /* Alvos de toque — WCAG 2.2 (2.5.8) pede no mínimo 24px; 44px é o mínimo
+     confortável em celular e o padrão que este app adota. */
+  --ds-touch-min: 2.75rem;
+  --ds-touch-comfortable: 3.25rem;
+
+  /* Movimento. As curvas são deliberadamente diferentes: `exit` é mais rápida
+     que `enter` porque sair de uma tela deve parecer instantâneo, enquanto
+     entrar merece ser acompanhado pelo olho. */
+  --ds-duration-instant: 80ms;
+  --ds-duration-fast: 150ms;
+  --ds-duration-normal: 240ms;
+  --ds-duration-slow: 400ms;
+
+  --ds-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Camadas. Centralizar evita a escalada de z-index arbitrário. */
+  --ds-z-base: 0;
+  --ds-z-sticky: 10;
+  --ds-z-nav: 20;
+  --ds-z-overlay: 40;
+  --ds-z-modal: 50;
+  --ds-z-toast: 60;
+}
+
+/* ─── Tema claro ──────────────────────────────────────────────────────────── */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ds-bg: #f7f7fa;
+  --ds-surface: #ffffff;
+  --ds-surface-raised: #ffffff;
+  --ds-surface-sunken: #efeff4;
+  --ds-border: #e0e0e8;
+  --ds-border-strong: #8c8c9c;
+
+  --ds-text: #15151b;
+  --ds-text-muted: #5a5a68;
+  --ds-text-subtle: #6b6b7d;
+
+  --ds-accent: #5b4bd6;
+  --ds-accent-hover: #4a3bc4;
+  --ds-accent-contrast: #ffffff;
+  --ds-accent-subtle: #edebfc;
+
+  --ds-success: #0f7a52;
+  --ds-success-subtle: #e3f5ee;
+  --ds-warning: #8a5a00;
+  --ds-warning-subtle: #fdf2dc;
+  --ds-danger: #c4283c;
+  --ds-danger-subtle: #fceaec;
+
+  /* No claro a profundidade vem de sombra projetada. */
+  --ds-shadow-sm: 0 1px 2px rgb(21 21 27 / 0.06);
+  --ds-shadow-md: 0 2px 4px rgb(21 21 27 / 0.06), 0 4px 12px rgb(21 21 27 / 0.05);
+  --ds-shadow-lg: 0 4px 8px rgb(21 21 27 / 0.06), 0 12px 28px rgb(21 21 27 / 0.08);
+  --ds-shadow-accent: 0 4px 16px rgb(91 75 214 / 0.28);
+
+  --ds-scrim: rgb(21 21 27 / 0.4);
+}
+
+/* ─── Tema escuro ─────────────────────────────────────────────────────────── */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ds-bg: #0e0e13;
+  --ds-surface: #17171e;
+  --ds-surface-raised: #1e1e27;
+  --ds-surface-sunken: #0a0a0e;
+  --ds-border: #282833;
+  --ds-border-strong: #65657a;
+
+  --ds-text: #f4f4f7;
+  --ds-text-muted: #a6a6b4;
+  --ds-text-subtle: #8a8a99;
+
+  --ds-accent: #8a7bf5;
+  --ds-accent-hover: #9c8ff7;
+  --ds-accent-contrast: #0e0e13;
+  --ds-accent-subtle: #1d1b33;
+
+  --ds-success: #3dd68c;
+  --ds-success-subtle: #10281e;
+  --ds-warning: #f5b547;
+  --ds-warning-subtle: #2b2110;
+  --ds-danger: #ff6b7a;
+  --ds-danger-subtle: #2e1418;
+
+  /* No escuro sombra quase não aparece: a elevação vem da superfície mais clara
+     somada a um filete de luz na borda superior. */
+  --ds-shadow-sm: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+  --ds-shadow-md: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 4px 16px rgb(0 0 0 / 0.4);
+  --ds-shadow-lg: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 16px 40px rgb(0 0 0 / 0.55);
+  --ds-shadow-accent: 0 4px 20px rgb(138 123 245 / 0.35);
+
+  --ds-scrim: rgb(0 0 0 / 0.65);
+}
+
+/* Antes de o JavaScript resolver a preferência, o sistema decide. Evita o
+   clarão branco em quem usa o aparelho no escuro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --ds-bg: #0e0e13;
+    --ds-surface: #17171e;
+    --ds-surface-raised: #1e1e27;
+    --ds-surface-sunken: #0a0a0e;
+    --ds-border: #282833;
+    --ds-border-strong: #65657a;
+
+    --ds-text: #f4f4f7;
+    --ds-text-muted: #a6a6b4;
+    --ds-text-subtle: #8a8a99;
+
+    --ds-accent: #8a7bf5;
+    --ds-accent-hover: #9c8ff7;
+    --ds-accent-contrast: #0e0e13;
+    --ds-accent-subtle: #1d1b33;
+
+    --ds-success: #3dd68c;
+    --ds-success-subtle: #10281e;
+    --ds-warning: #f5b547;
+    --ds-warning-subtle: #2b2110;
+    --ds-danger: #ff6b7a;
+    --ds-danger-subtle: #2e1418;
+
+    --ds-shadow-sm: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+    --ds-shadow-md: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 4px 16px rgb(0 0 0 / 0.4);
+    --ds-shadow-lg: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 16px 40px rgb(0 0 0 / 0.55);
+    --ds-shadow-accent: 0 4px 20px rgb(138 123 245 / 0.35);
+
+    --ds-scrim: rgb(0 0 0 / 0.65);
+  }
+}
+
+/* ─── Alto contraste ──────────────────────────────────────────────────────── */
+/* Não é um quinto tema: é um modificador que endurece o tema vigente até AAA.
+   Bordas viram traços sólidos e as sombras somem — quem precisa deste modo lê
+   limites por contorno, não por profundidade. */
+
+:root[data-contrast="high"] {
+  --ds-shadow-sm: none;
+  --ds-shadow-md: none;
+  --ds-shadow-lg: none;
+  --ds-shadow-accent: none;
+}
+
+:root[data-theme="light"][data-contrast="high"],
+:root[data-contrast="high"]:not([data-theme="dark"]) {
+  --ds-bg: #ffffff;
+  --ds-surface: #ffffff;
+  --ds-surface-raised: #ffffff;
+  --ds-surface-sunken: #f0f0f0;
+  --ds-border: #000000;
+  --ds-border-strong: #000000;
+
+  --ds-text: #000000;
+  --ds-text-muted: #1a1a1a;
+  --ds-text-subtle: #333333;
+
+  --ds-accent: #0000cc;
+  --ds-accent-hover: #0000aa;
+  --ds-accent-contrast: #ffffff;
+  --ds-accent-subtle: #e6e6ff;
+
+  --ds-success: #00451f;
+  --ds-success-subtle: #e6f5ed;
+  --ds-warning: #664400;
+  --ds-warning-subtle: #fff4e0;
+  --ds-danger: #990010;
+  --ds-danger-subtle: #ffe6e6;
+
+  --ds-scrim: rgb(0 0 0 / 0.75);
+}
+
+:root[data-theme="dark"][data-contrast="high"] {
+  --ds-bg: #000000;
+  --ds-surface: #000000;
+  --ds-surface-raised: #0d0d0d;
+  --ds-surface-sunken: #000000;
+  --ds-border: #ffffff;
+  --ds-border-strong: #ffffff;
+
+  --ds-text: #ffffff;
+  --ds-text-muted: #e8e8e8;
+  --ds-text-subtle: #d0d0d0;
+
+  --ds-accent: #ffe600;
+  --ds-accent-hover: #fff04d;
+  --ds-accent-contrast: #000000;
+  --ds-accent-subtle: #332e00;
+
+  --ds-success: #4dff9e;
+  --ds-success-subtle: #00260f;
+  --ds-warning: #ffd24d;
+  --ds-warning-subtle: #332600;
+  --ds-danger: #ff8a94;
+  --ds-danger-subtle: #330a0e;
+
+  --ds-scrim: rgb(0 0 0 / 0.85);
+}
+
+/* ─── Escala tipográfica da acessibilidade ────────────────────────────────── */
+
+:root[data-font-size="sm"] {
+  --ds-font-scale: 0.875;
+}
+:root[data-font-size="md"] {
+  --ds-font-scale: 1;
+}
+:root[data-font-size="lg"] {
+  --ds-font-scale: 1.15;
+}
+:root[data-font-size="xl"] {
+  --ds-font-scale: 1.35;
+}
+
+/* ─── Movimento reduzido ──────────────────────────────────────────────────── */
+/* Zerar a duração nos tokens desliga a animação em todo componente de uma vez,
+   sem precisar de `!important` espalhado por aí. */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ds-duration-instant: 0ms;
+    --ds-duration-fast: 0ms;
+    --ds-duration-normal: 0ms;
+    --ds-duration-slow: 0ms;
+  }
+}

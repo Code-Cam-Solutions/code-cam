@@ -3,15 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo-codecam.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#19191d" />
-    <meta name="description" content="CodeCam - Transforme seus materiais de estudo com IA acessível" />
+
+    <!--
+      Sem `maximum-scale` nem `user-scalable=no`: bloquear o zoom por pinça
+      viola a WCAG 1.4.4 e inviabiliza o uso por quem tem baixa visão — que é
+      exatamente o público deste app. `viewport-fit=cover` faz o layout ocupar
+      a área sob o notch em aparelhos com recorte de tela.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- A cor da barra do navegador acompanha o tema. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7fa" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e0e13" />
+
+    <meta
+      name="description"
+      content="CodeCam — fotografe seus materiais de estudo e transforme-os em resumos e flashcards acessíveis com IA."
+    />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta property="og:title" content="CodeCam" />
-    <meta property="og:description" content="Escanei, aprenda, evolua." />
+    <meta property="og:description" content="Escaneie, aprenda, evolua." />
+    <meta property="og:type" content="website" />
+
     <title>CodeCam</title>
+
+    <script>
+      /**
+       * Aplica as preferências de exibição antes da primeira pintura.
+       *
+       * Se isto rodasse só depois que o React montasse, quem escolheu tema
+       * escuro veria um clarão branco a cada carregamento. O script é
+       * deliberadamente inline e síncrono: qualquer atraso reintroduz o flash.
+       */
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem("codecam-accessibility") || "{}");
+          var root = document.documentElement;
+
+          var theme = saved.theme || "system";
+          if (theme === "system") {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          root.dataset.theme = theme;
+
+          if (saved.highContrast) root.dataset.contrast = "high";
+          if (saved.openDyslexic) root.dataset.dyslexic = "true";
+          root.dataset.fontSize = saved.fontSize || "md";
+        } catch (e) {
+          // Preferências ilegíveis: o CSS assume o padrão do sistema sozinho.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

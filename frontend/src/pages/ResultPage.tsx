@@ -1,55 +1,151 @@
-import { useCallback, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
-  ListChecks,
-  Layers,
-  FolderPlus,
-  Play,
-  ChevronDown,
-  ChevronUp,
   Check,
+  ChevronDown,
+  FileText,
+  Folder,
+  FolderPlus,
+  Layers,
+  ListChecks,
+  Play,
+  ScanLine,
+  Sparkles,
 } from "lucide-react";
-import { getFolders, saveContent, createFolder } from "../services/api";
+import { createFolder, getFolders, saveContent } from "../services/api";
+import type { Folder as FolderData } from "../services/api";
 import { useRouteState } from "../types/navigation";
-import { useEscapeKey } from "../hooks/useEscapeKey";
+import { Badge, Button, Card, Dialog, EmptyState, Input, SkeletonList, cn } from "../design-system";
 import { Navbar } from "../components/Navbar";
 import { BottomNav } from "../components/BottomNav";
 import { TTSButton } from "../components/TTSButton";
-import { Button } from "../components/Button";
-import { useToast, ToastContainer } from "../components/Toast";
+import { ToastContainer, useToast } from "../components/Toast";
+
+/**
+ * Cor da pasta criada aqui de improviso.
+ *
+ * É o único hex do arquivo e não pinta nada da interface: vai para o campo
+ * `color` da pasta no banco. É o mesmo primeiro valor da paleta oferecida na
+ * tela de pastas, para que uma pasta criada por atalho não destoe das outras.
+ */
+const DEFAULT_FOLDER_COLOR = "#6C5CE7";
+
+/** Cabeçalho de seção: selo do ícone, título e uma ação opcional à direita. */
+function SectionHeading({
+  icon: Icon,
+  id,
+  title,
+  action,
+  solidIcon = false,
+}: {
+  icon: typeof BookOpen;
+  id: string;
+  title: string;
+  action?: ReactNode;
+  /** Sobre um card já tingido de acento, o selo precisa ser sólido para existir. */
+  solidIcon?: boolean;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          className={cn(
+            "grid size-8 shrink-0 place-items-center rounded-lg",
+            solidIcon ? "bg-accent text-accent-contrast" : "bg-accent-subtle text-accent",
+          )}
+          aria-hidden="true"
+        >
+          <Icon size={17} />
+        </span>
+        <h2 id={id} className="truncate text-base font-semibold text-text">
+          {title}
+        </h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/** Bloco recolhível com o texto cru do OCR — conferência, não leitura. */
+function RawTextSection({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const regionId = "raw-text";
+
+  return (
+    <Card padding="none" className="overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={regionId}
+        className={cn(
+          "flex min-h-[3.25rem] w-full items-center justify-between gap-3 px-4 py-3",
+          "transition-colors duration-150 hover:bg-surface-sunken",
+        )}
+      >
+        <span className="flex items-center gap-2.5">
+          <span
+            className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-sunken text-text-subtle"
+            aria-hidden="true"
+          >
+            <FileText size={17} />
+          </span>
+          <span className="text-base font-semibold text-text">Texto extraído</span>
+        </span>
+
+        <ChevronDown
+          size={18}
+          className={cn(
+            "shrink-0 text-text-subtle transition-transform duration-200 ease-enter",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <div id={regionId} className="animate-rise-in border-t border-border px-4 pt-3 pb-4">
+          <div className="mb-2 flex justify-end">
+            <TTSButton text={text} label="texto extraído" />
+          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-text-muted">{text}</p>
+        </div>
+      )}
+    </Card>
+  );
+}
 
 export function ResultPage() {
   const navigate = useNavigate();
   const { result } = useRouteState<"/result">();
   const { toasts, addToast, removeToast } = useToast();
 
-  const [showRawText, setShowRawText] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [folders, setFolders] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [folders, setFolders] = useState<FolderData[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [savingTo, setSavingTo] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
 
-  useEscapeKey(
-    showSaveModal,
-    useCallback(() => setShowSaveModal(false), []),
-  );
-
   if (!result) {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
-        <p className="text-white mb-4" style={{ fontSize: "var(--text-lg)" }}>
-          Nenhum resultado encontrado.
-        </p>
-        <Link to="/camera">
-          <Button>Escanear material</Button>
-        </Link>
+      <div className="flex min-h-dvh flex-col bg-bg">
+        <Navbar title="Resultado" showBack backTo="/camera" />
+        <main id="main-content" className="flex flex-1 items-center justify-center px-4">
+          <EmptyState
+            className="animate-rise-in"
+            icon={<ScanLine size={26} />}
+            title="Nenhum resultado encontrado."
+            description="Fotografe um material de estudo para que a IA o transforme em resumo, tópicos e flashcards."
+            action={
+              <Button icon={<ScanLine size={18} />} onClick={() => void navigate("/camera")}>
+                Escanear material
+              </Button>
+            }
+          />
+        </main>
       </div>
     );
   }
@@ -94,7 +190,7 @@ export function ResultPage() {
     if (!newFolderName.trim()) return;
     setCreatingFolder(true);
     try {
-      const folder = await createFolder(newFolderName.trim(), "#6C5CE7");
+      const folder = await createFolder(newFolderName.trim(), DEFAULT_FOLDER_COLOR);
       await handleSave(folder.id);
       setNewFolderName("");
     } catch {
@@ -104,337 +200,271 @@ export function ResultPage() {
     }
   }
 
+  const busy = savingTo !== null;
+  const flashcardCount = result.flashcards.length;
+
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
+    <div className="flex min-h-dvh flex-col bg-bg">
       <Navbar title="Resultado" showBack backTo="/camera" />
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
-      <main className="flex-1 px-4 pt-4 pb-32 max-w-2xl mx-auto w-full" id="main-content">
-        {/* Title */}
-        <section
-          className="mb-4 p-4 rounded-2xl"
-          style={{ backgroundColor: "var(--color-surface)" }}
-          aria-labelledby="result-title"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <h1
-              id="result-title"
-              className="font-bold text-white flex-1"
-              style={{ fontSize: "var(--text-xl)" }}
-            >
+      <main id="main-content" className="relative mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-40">
+        {/* Halo de acento atrás do título. É o momento de recompensa da tela:
+            a foto virou conteúdo. Decorativo e feito do próprio token, então
+            acompanha o tema. */}
+        <div
+          className="pointer-events-none absolute -top-16 left-1/2 size-64 -translate-x-1/2 rounded-full bg-accent-subtle blur-3xl"
+          aria-hidden="true"
+        />
+
+        <header className="relative mb-8 animate-rise-in">
+          <Badge tone="accent" icon={<Sparkles size={13} />}>
+            Análise concluída
+          </Badge>
+
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <h1 id="result-title" className="min-w-0 flex-1 text-3xl font-bold text-text">
               {result.title}
             </h1>
             <TTSButton text={result.title} label="título" />
           </div>
-        </section>
 
-        {/* Summary */}
-        <section
-          className="mb-4 p-4 rounded-2xl"
-          style={{ backgroundColor: "var(--color-surface)" }}
-          aria-labelledby="summary-heading"
-        >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <BookOpen size={18} style={{ color: "var(--color-codecam)" }} aria-hidden="true" />
-              <h2
-                id="summary-heading"
-                className="font-semibold text-white"
-                style={{ fontSize: "var(--text-base)" }}
-              >
-                Resumo
-              </h2>
-            </div>
-            <TTSButton text={result.summary} label="resumo" />
-          </div>
-          <p className="text-white" style={{ fontSize: "var(--text-sm)", lineHeight: "1.7" }}>
-            {result.summary}
-          </p>
-        </section>
-
-        {/* Topics */}
-        <section
-          className="mb-4 p-4 rounded-2xl"
-          style={{ backgroundColor: "var(--color-surface)" }}
-          aria-labelledby="topics-heading"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <ListChecks size={18} style={{ color: "var(--color-codecam)" }} aria-hidden="true" />
-            <h2
-              id="topics-heading"
-              className="font-semibold text-white"
-              style={{ fontSize: "var(--text-base)" }}
-            >
-              Tópicos principais
-            </h2>
-          </div>
-          <ul className="flex flex-col gap-2" aria-label="Lista de tópicos">
-            {result.topics.map((topic, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between gap-2 p-2 rounded-lg"
-                style={{ backgroundColor: "var(--color-surface-2)" }}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: "var(--color-codecam)" }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-white" style={{ fontSize: "var(--text-sm)" }}>
-                    {topic}
-                  </span>
-                </div>
-                <TTSButton text={topic} label={`tópico ${i + 1}`} size={14} />
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Flashcards CTA */}
-        <section
-          className="mb-4 p-4 rounded-2xl"
-          style={{ backgroundColor: "var(--color-surface)" }}
-          aria-labelledby="flashcards-heading"
-        >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <Layers size={18} style={{ color: "var(--color-codecam)" }} aria-hidden="true" />
-              <h2
-                id="flashcards-heading"
-                className="font-semibold text-white"
-                style={{ fontSize: "var(--text-base)" }}
-              >
-                Flashcards
-              </h2>
-              <span
-                className="px-2 py-0.5 rounded-full text-white"
-                style={{
-                  backgroundColor: "var(--color-codecam)",
-                  fontSize: "var(--text-xs)",
-                }}
-              >
-                {result.flashcards.length}
-              </span>
-            </div>
-          </div>
-          <p
-            className="mb-3"
-            style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}
-          >
-            Pratique com os flashcards gerados automaticamente.
-          </p>
-          <Button
-            fullWidth
-            icon={<Play size={18} aria-hidden="true" />}
-            onClick={() => navigate("/flashcards", { state: { flashcards: result.flashcards } })}
-            aria-label={`Iniciar sessão com ${result.flashcards.length} flashcards`}
-          >
-            Iniciar flashcards
-          </Button>
-        </section>
-
-        {/* Raw text (collapsible) */}
-        <section
-          className="mb-6 rounded-2xl overflow-hidden"
-          style={{ backgroundColor: "var(--color-surface)" }}
-        >
-          <button
-            onClick={() => setShowRawText((v) => !v)}
-            className="flex items-center justify-between w-full p-4 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-            aria-expanded={showRawText}
-            aria-controls="raw-text"
-          >
-            <span className="font-semibold text-white" style={{ fontSize: "var(--text-base)" }}>
-              Texto extraído
-            </span>
-            {showRawText ? (
-              <ChevronUp
-                size={18}
-                style={{ color: "var(--color-text-muted)" }}
-                aria-hidden="true"
-              />
-            ) : (
-              <ChevronDown
-                size={18}
-                style={{ color: "var(--color-text-muted)" }}
-                aria-hidden="true"
-              />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {result.topics.length > 0 && (
+              <Badge icon={<ListChecks size={13} />}>
+                {result.topics.length} {result.topics.length === 1 ? "tópico" : "tópicos"}
+              </Badge>
             )}
-          </button>
-          {showRawText && (
-            <div
-              id="raw-text"
-              className="px-4 pb-4"
-              style={{ borderTop: "1px solid var(--color-border)" }}
-            >
-              <div className="flex justify-end mb-2 pt-3">
-                <TTSButton text={result.rawText} label="texto extraído" />
-              </div>
-              <p
-                className="text-white whitespace-pre-wrap"
-                style={{ fontSize: "var(--text-sm)", lineHeight: "1.7" }}
-              >
-                {result.rawText}
-              </p>
-            </div>
+            {flashcardCount > 0 && (
+              <Badge icon={<Layers size={13} />}>
+                {flashcardCount} {flashcardCount === 1 ? "flashcard" : "flashcards"}
+              </Badge>
+            )}
+          </div>
+        </header>
+
+        <div className="flex flex-col gap-4">
+          {/* Resumo — o que a pessoa veio ler, então é o único card elevado. */}
+          <Card
+            padding="lg"
+            elevation="raised"
+            className="animate-rise-in"
+            aria-labelledby="summary-heading"
+          >
+            <SectionHeading
+              icon={BookOpen}
+              id="summary-heading"
+              title="Resumo"
+              action={<TTSButton text={result.summary} label="resumo" />}
+            />
+            <p className="text-base leading-relaxed text-text">{result.summary}</p>
+          </Card>
+
+          {/* Tópicos */}
+          {result.topics.length > 0 && (
+            <Card padding="lg" aria-labelledby="topics-heading">
+              <SectionHeading icon={ListChecks} id="topics-heading" title="Tópicos principais" />
+              <ul className="flex flex-wrap gap-2" aria-label="Lista de tópicos">
+                {result.topics.map((topic, i) => (
+                  <li key={i} className="flex items-center gap-1">
+                    <Badge tone="accent" className="max-w-full whitespace-normal">
+                      {topic}
+                    </Badge>
+                    <TTSButton text={topic} label={`tópico ${i + 1}`} />
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
-        </section>
+
+          {/* Flashcards */}
+          <Card
+            padding="lg"
+            className="border-accent/25 bg-accent-subtle"
+            aria-labelledby="flashcards-heading"
+          >
+            <SectionHeading
+              icon={Layers}
+              id="flashcards-heading"
+              title="Flashcards"
+              solidIcon
+              action={
+                <Badge tone="accent" className="border-accent bg-accent text-accent-contrast">
+                  {flashcardCount}
+                </Badge>
+              }
+            />
+            <p className="mb-4 text-sm text-text">
+              Pratique com os flashcards gerados automaticamente.
+            </p>
+            <Button
+              fullWidth
+              size="lg"
+              icon={<Play size={18} />}
+              onClick={() =>
+                void navigate("/flashcards", { state: { flashcards: result.flashcards } })
+              }
+              aria-label={`Iniciar sessão com ${flashcardCount} flashcards`}
+            >
+              Iniciar flashcards
+            </Button>
+          </Card>
+
+          <RawTextSection text={result.rawText} />
+        </div>
       </main>
 
-      {/* Fixed bottom action */}
+      {/* Ação fixa, encaixada exatamente sobre a barra de navegação — o cálculo
+          soma a altura dela com a faixa de gestos do aparelho. */}
       <div
-        className="fixed bottom-16 left-0 right-0 px-4 pb-3 pt-3"
-        style={{
-          backgroundColor: "var(--color-background)",
-          borderTop: "1px solid var(--color-border)",
-        }}
-      >
-        {saved ? (
-          <div
-            className="flex items-center justify-center gap-2 py-3 rounded-xl"
-            style={{ backgroundColor: "var(--color-success)" + "20" }}
-            role="status"
-          >
-            <Check size={18} style={{ color: "var(--color-success)" }} aria-hidden="true" />
-            <span className="text-white font-medium" style={{ fontSize: "var(--text-base)" }}>
-              Salvo com sucesso!
-            </span>
-          </div>
-        ) : (
-          <Button
-            fullWidth
-            size="lg"
-            icon={<FolderPlus size={18} aria-hidden="true" />}
-            onClick={handleOpenSaveModal}
-            aria-label="Salvar conteúdo em uma pasta"
-          >
-            Salvar em pasta
-          </Button>
+        className={cn(
+          "fixed inset-x-0 bottom-[calc(3.5rem_+_env(safe-area-inset-bottom))]",
+          "border-t border-border bg-bg/90 px-4 py-3 backdrop-blur-md",
         )}
+        style={{ zIndex: "var(--ds-z-nav)" }}
+      >
+        <div className="mx-auto w-full max-w-2xl">
+          {saved ? (
+            <div
+              className={cn(
+                "flex min-h-[3.25rem] animate-scale-in items-center justify-center gap-2",
+                "rounded-xl border border-success/30 bg-success-subtle px-4",
+              )}
+              role="status"
+            >
+              <Check size={18} className="shrink-0 text-success" aria-hidden="true" />
+              <span className="font-semibold text-success">Salvo com sucesso!</span>
+            </div>
+          ) : (
+            <Button
+              fullWidth
+              size="lg"
+              icon={<FolderPlus size={18} />}
+              onClick={() => void handleOpenSaveModal()}
+            >
+              Salvar em pasta
+            </Button>
+          )}
+        </div>
       </div>
 
       <BottomNav />
 
-      {/* Save modal */}
-      {showSaveModal && (
-        <div className="fixed inset-0 z-50 flex items-end">
-          {/* Backdrop puramente visual: o descarte por teclado é o Escape. */}
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-            aria-hidden="true"
-            onMouseDown={() => setShowSaveModal(false)}
-          />
-          <div
-            className="relative w-full rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in"
-            style={{ backgroundColor: "var(--color-surface)" }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="save-modal-title"
+      <Dialog
+        open={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        title="Salvar em pasta"
+        description="Escolha onde guardar este material — ou salve sem pasta e organize depois."
+      >
+        <div className="flex flex-col gap-5">
+          <button
+            type="button"
+            onClick={() => void handleSave(undefined)}
+            disabled={busy}
+            className={cn(
+              "flex min-h-[3.25rem] w-full items-center gap-3 rounded-xl border border-dashed border-border-strong px-3",
+              "text-left transition-colors duration-150 hover:bg-surface-sunken",
+              "disabled:cursor-not-allowed disabled:opacity-55",
+            )}
           >
-            <h2
-              id="save-modal-title"
-              className="font-bold text-white mb-4"
-              style={{ fontSize: "var(--text-xl)" }}
+            <span
+              className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-sunken text-text-subtle"
+              aria-hidden="true"
             >
-              Salvar em pasta
-            </h2>
-
-            {/* No folder option */}
-            <button
-              onClick={() => handleSave(undefined)}
-              disabled={savingTo !== null}
-              className="w-full flex items-center gap-3 p-3 rounded-xl mb-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-              style={{ border: "1px dashed var(--color-border)" }}
-            >
-              <FolderPlus
-                size={20}
-                style={{ color: "var(--color-text-muted)" }}
+              <FolderPlus size={18} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium text-text">Sem pasta (geral)</span>
+              <span className="block text-xs text-text-subtle">Fica na lista de conteúdos</span>
+            </span>
+            {savingTo === "none" && (
+              <span
+                className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent text-text-muted"
                 aria-hidden="true"
               />
-              <span className="text-white" style={{ fontSize: "var(--text-base)" }}>
-                Sem pasta (geral)
-              </span>
-            </button>
+            )}
+          </button>
 
-            {loadingFolders ? (
-              <p
-                className="text-center py-4"
-                style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}
-              >
-                Carregando pastas...
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2 mb-4">
-                {folders.map((folder) => (
+          {loadingFolders ? (
+            <SkeletonList count={2} label="Carregando pastas" />
+          ) : folders.length === 0 ? (
+            <EmptyState
+              className="py-4"
+              title="Nenhuma pasta ainda"
+              description="Crie uma abaixo para começar a organizar."
+            />
+          ) : (
+            <ul className="flex flex-col gap-2" aria-label="Pastas disponíveis">
+              {folders.map((folder) => (
+                <li key={folder.id}>
                   <button
-                    key={folder.id}
-                    onClick={() => handleSave(folder.id)}
-                    disabled={savingTo !== null}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-                    style={{ backgroundColor: "var(--color-surface-2)" }}
+                    type="button"
+                    onClick={() => void handleSave(folder.id)}
+                    disabled={busy}
                     aria-label={`Salvar em ${folder.name}`}
+                    className={cn(
+                      "flex min-h-[3.25rem] w-full items-center gap-3 rounded-xl bg-surface-sunken px-3",
+                      "text-left transition-colors duration-150 hover:brightness-95",
+                      "disabled:cursor-not-allowed disabled:opacity-55",
+                    )}
                   >
-                    <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: folder.color }}
+                    {/* A cor da pasta vem do banco e não tem contraste
+                        garantido: ela só tinge o traço deste ícone decorativo,
+                        nunca um texto. O nome ao lado carrega o significado. */}
+                    <span
+                      className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-surface"
                       aria-hidden="true"
-                    />
-                    <span className="text-white" style={{ fontSize: "var(--text-base)" }}>
+                    >
+                      <Folder size={18} style={{ color: folder.color }} />
+                    </span>
+
+                    <span className="min-w-0 flex-1 truncate font-medium text-text">
                       {folder.name}
                     </span>
+
                     {savingTo === folder.id && (
                       <span
-                        className="ml-auto w-4 h-4 border-2 border-codecam border-t-transparent rounded-full animate-spin"
+                        className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent text-accent"
                         aria-hidden="true"
                       />
                     )}
                   </button>
-                ))}
-              </div>
-            )}
+                </li>
+              ))}
+            </ul>
+          )}
 
-            {/* Create new folder inline */}
-            <div className="flex gap-2 pt-3" style={{ borderTop: "1px solid var(--color-border)" }}>
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Nova pasta..."
-                aria-label="Nome da nova pasta"
-                className="flex-1 px-3 py-2 rounded-xl text-white placeholder:text-text-muted border focus:outline-none focus-visible:ring-2 focus-visible:ring-codecam"
-                style={{
-                  backgroundColor: "var(--color-surface-2)",
-                  borderColor: "var(--color-border)",
-                  fontSize: "var(--text-sm)",
-                }}
-              />
-              <Button
-                size="sm"
-                onClick={handleCreateAndSave}
-                loading={creatingFolder}
-                disabled={!newFolderName.trim()}
-                aria-label="Criar pasta e salvar"
-              >
-                Criar
-              </Button>
-            </div>
+          <div className="border-t border-border pt-5">
+            {/* Sem `autoFocus`: quem coloca e devolve o foco é o `Dialog`. */}
+            <Input
+              label="Criar uma pasta nova"
+              value={newFolderName}
+              onChange={(event) => setNewFolderName(event.target.value)}
+              placeholder="Ex.: Biologia, Prova final…"
+              className="bg-surface-sunken"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void handleCreateAndSave();
+              }}
+            />
 
             <Button
-              variant="ghost"
               fullWidth
               className="mt-3"
-              onClick={() => setShowSaveModal(false)}
+              icon={<FolderPlus size={18} />}
+              onClick={() => void handleCreateAndSave()}
+              loading={creatingFolder}
+              loadingLabel="Criando…"
+              disabled={!newFolderName.trim()}
             >
-              Cancelar
+              Criar pasta e salvar
             </Button>
           </div>
+
+          <Button variant="ghost" fullWidth onClick={() => setShowSaveModal(false)}>
+            Cancelar
+          </Button>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }

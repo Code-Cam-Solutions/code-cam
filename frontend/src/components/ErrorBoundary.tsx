@@ -1,5 +1,6 @@
-import { Component, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Button, Card } from "../design-system";
 
 interface Props {
   children: ReactNode;
@@ -12,90 +13,63 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+  override state: State = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  override componentDidCatch(error: Error, info: { componentStack: string }) {
+  override componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
   }
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
+  private readonly handleReset = () => {
+    // Recarregar pela URL, em vez de apenas limpar o estado, garante que a
+    // árvore volte do zero: um erro de render costuma deixar contexto
+    // inconsistente que sobreviveria a um simples setState.
     window.location.href = "/";
   };
 
   override render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+    if (!this.state.hasError) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
 
-      return (
-        <div
-          className="min-h-screen flex flex-col items-center justify-center px-6 py-12 text-center"
-          style={{ backgroundColor: "var(--color-background)" }}
-          role="alert"
-          aria-live="assertive"
+    return (
+      <div
+        role="alert"
+        aria-live="assertive"
+        className="flex min-h-dvh flex-col items-center justify-center bg-bg px-6 py-12 text-center"
+      >
+        <span
+          className="mb-6 grid size-20 place-items-center rounded-full bg-danger-subtle text-danger"
+          aria-hidden="true"
         >
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: "var(--color-error)" + "20" }}
-          >
-            <AlertTriangle size={36} style={{ color: "var(--color-error)" }} aria-hidden="true" />
-          </div>
+          <AlertTriangle size={34} />
+        </span>
 
-          <h1 className="font-bold text-white mb-3" style={{ fontSize: "var(--text-2xl)" }}>
-            Algo deu errado
-          </h1>
+        <h1 className="mb-2 text-2xl font-bold text-text">Algo deu errado</h1>
 
-          <p
-            className="mb-2"
-            style={{
-              color: "var(--color-text-muted)",
-              fontSize: "var(--text-base)",
-              lineHeight: "1.6",
-              maxWidth: "300px",
-            }}
-          >
-            Ocorreu um erro inesperado. Tente voltar para o início.
-          </p>
+        <p className="max-w-xs text-base leading-relaxed text-text-muted">
+          Ocorreu um erro inesperado. Voltar ao início costuma resolver.
+        </p>
 
-          {this.state.error && (
-            <p
-              className="mb-8 px-3 py-2 rounded-lg"
-              style={{
-                color: "var(--color-error)",
-                backgroundColor: "var(--color-error)" + "15",
-                fontSize: "var(--text-xs)",
-                maxWidth: "300px",
-                wordBreak: "break-word",
-              }}
-            >
-              {this.state.error.message}
-            </p>
-          )}
+        {this.state.error && (
+          <Card padding="sm" className="mt-5 max-w-xs border-danger/30 bg-danger-subtle text-left">
+            {/* A mensagem técnica fica visível de propósito: sem ela, relatar o
+                problema vira adivinhação para quem usa e para quem dá suporte. */}
+            <p className="font-mono text-xs break-words text-danger">{this.state.error.message}</p>
+          </Card>
+        )}
 
-          <button
-            onClick={this.handleReset}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{
-              backgroundColor: "var(--color-codecam)",
-              fontSize: "var(--text-base)",
-              minHeight: "48px",
-            }}
-            aria-label="Voltar para o início do aplicativo"
-          >
-            <RefreshCw size={18} aria-hidden="true" />
-            Voltar ao início
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
+        <Button
+          size="lg"
+          className="mt-8"
+          icon={<RefreshCw size={18} />}
+          onClick={this.handleReset}
+        >
+          Voltar ao início
+        </Button>
+      </div>
+    );
   }
 }
