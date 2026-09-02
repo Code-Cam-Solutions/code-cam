@@ -15,6 +15,7 @@ import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 
 @Controller('folders')
 @UseGuards(JwtAuthGuard)
@@ -22,23 +23,23 @@ export class FoldersController {
   constructor(private readonly foldersService: FoldersService) {}
 
   @Post()
-  create(@Request() req, @Body() dto: CreateFolderDto) {
+  create(@Request() req: AuthenticatedRequest, @Body() dto: CreateFolderDto) {
     return this.foldersService.create(req.user.userId, dto);
   }
 
   @Get()
-  findAll(@Request() req) {
+  findAll(@Request() req: AuthenticatedRequest) {
     return this.foldersService.findAll(req.user.userId);
   }
 
   @Get(':id')
-  findOne(@Request() req, @Param('id') id: string) {
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.foldersService.findOne(req.user.userId, id);
   }
 
   @Patch(':id')
   update(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateFolderDto,
   ) {
@@ -47,7 +48,7 @@ export class FoldersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Request() req, @Param('id') id: string) {
+  remove(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.foldersService.remove(req.user.userId, id);
   }
 }
