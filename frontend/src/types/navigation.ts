@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import type { CapturedPhoto } from "../hooks/useCamera";
 import type { Flashcard, ScanResult } from "../services/api";
 
 /**
@@ -7,6 +8,7 @@ import type { Flashcard, ScanResult } from "../services/api";
  * isso, um `state` renomeado só falha em runtime, na mão do usuário.
  */
 export interface RouteState {
+  "/camera/review": { photo?: CapturedPhoto };
   "/processing": { imageBlob?: Blob };
   "/result": { result?: ScanResult };
   "/camera": { scanError?: string };

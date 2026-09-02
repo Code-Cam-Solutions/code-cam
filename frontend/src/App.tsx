@@ -12,12 +12,14 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProcessingPage } from "./pages/ProcessingPage";
 import { ResultPage } from "./pages/ResultPage";
+import { ReviewCapturePage } from "./pages/ReviewCapturePage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 /** Rotas que exigem sessão. Declarar em dado evita repetir o wrapper em cada uma. */
 const PROTECTED_ROUTES = [
   { path: "/", element: <HomePage /> },
   { path: "/camera", element: <CameraPage /> },
+  { path: "/camera/review", element: <ReviewCapturePage /> },
   { path: "/processing", element: <ProcessingPage /> },
   { path: "/result", element: <ResultPage /> },
   { path: "/flashcards", element: <FlashcardsPage /> },

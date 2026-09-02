@@ -11,3 +11,18 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/**
+ * `torch` (a lanterna) é uma extensão da Image Capture API que só o Chrome no
+ * Android implementa, e por isso não existe no `lib.dom`. Declarar o campo aqui
+ * mantém a checagem de tipo viva no hook da câmera — a alternativa seria um
+ * `as unknown as MediaTrackConstraints` que desligaria a verificação do objeto
+ * inteiro, e não só do campo desconhecido.
+ */
+interface MediaTrackCapabilities {
+  torch?: boolean;
+}
+
+interface MediaTrackConstraintSet {
+  torch?: ConstrainBoolean;
+}
