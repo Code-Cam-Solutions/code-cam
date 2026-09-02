@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   BookOpen,
   Check,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import {
   finishStudySession,
+  getContentCards,
   getStudyQueue,
   recordReview,
   startStudySession,
@@ -123,12 +124,18 @@ export function StudyPage() {
   // banco. Nada é gravado, e a tela diz isso em vez de fingir que agendou algo.
   const isPractice = Array.isArray(draftCards) && draftCards.length > 0;
 
+  // Com `contentId`, a sessão é sobre um material específico e traz todos os
+  // seus cartões — vencidos ou não. Sem ele, é a revisão do dia: só o que já
+  // venceu, de todos os materiais.
+  const { contentId } = useParams<{ contentId?: string }>();
+
   const queue = useAsync<Flashcard[]>(
-    useCallback(
-      () => (isPractice ? Promise.resolve([]) : getStudyQueue({ limit: 30 })),
-      [isPractice],
-    ),
-    [isPractice],
+    useCallback(() => {
+      if (isPractice) return Promise.resolve([]);
+      if (contentId) return getContentCards(contentId);
+      return getStudyQueue({ limit: 30 });
+    }, [isPractice, contentId]),
+    [isPractice, contentId],
   );
 
   const cards: StudyCard[] = isPractice ? (draftCards ?? []) : (queue.data ?? []);
@@ -161,6 +168,12 @@ export function StudyPage() {
       active = false;
     };
   }, [isPractice, sessionId, cards.length, finished]);
+
+  const studyTitle = isPractice
+    ? (title ?? "Praticar")
+    : contentId
+      ? "Estudar material"
+      : "Revisão do dia";
 
   const total = cards.length;
   const current = cards[index];
@@ -244,8 +257,12 @@ export function StudyPage() {
         <EmptyState
           className="animate-rise-in"
           icon={<Check size={26} />}
-          title="Nada para revisar agora"
-          description="Os cartões voltam sozinhos no dia em que a memória estiver prestes a falhar. Enquanto isso, escaneie um material novo."
+          title={contentId ? "Este material não tem cartões" : "Nada para revisar agora"}
+          description={
+            contentId
+              ? "Escaneie o material de novo pedindo flashcards para poder estudá-lo assim."
+              : "Os cartões voltam sozinhos no dia em que a memória estiver prestes a falhar. Enquanto isso, escaneie um material novo."
+          }
           action={
             <div className="flex flex-col gap-2">
               <Button onClick={() => void navigate("/camera")}>Escanear material</Button>
@@ -275,7 +292,7 @@ export function StudyPage() {
 
   // ─── Estudo ──────────────────────────────────────────────────────────────
   return (
-    <Shell title={isPractice ? (title ?? "Praticar") : "Revisão"}>
+    <Shell title={studyTitle}>
       <div className="pt-4">
         <Progress value={index} max={total} label={`Cartão ${index + 1} de ${total}`} />
 

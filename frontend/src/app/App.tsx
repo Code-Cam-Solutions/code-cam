@@ -26,6 +26,7 @@ const PROTECTED_ROUTES = [
   { path: "/processing", element: <ProcessingPage /> },
   { path: "/result", element: <ResultPage /> },
   { path: "/flashcards", element: <StudyPage /> },
+  { path: "/study/:contentId", element: <StudyPage /> },
   { path: "/search", element: <SearchPage /> },
   { path: "/folders", element: <FoldersPage /> },
   { path: "/folders/:id", element: <FolderDetailPage /> },

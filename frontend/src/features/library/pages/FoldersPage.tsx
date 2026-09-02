@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ChevronRight, Folder, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Folder, FolderPlus, Pencil, Search, Trash2 } from "lucide-react";
 import { createFolder, deleteFolder, getFolders, updateFolder } from "@/api";
 import type { Folder as FolderType } from "@/api";
 import { Button, Card, Dialog, EmptyState, Input, SkeletonList, cn } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
-import { TTSButton } from "@/shared/components/TTSButton";
 import { ToastContainer, useToast } from "@/shared/components/Toast";
 
 /**
@@ -41,8 +40,25 @@ const ICON_BUTTON =
   "grid size-11 shrink-0 place-items-center rounded-lg transition-colors duration-150";
 
 function describeCount(total: number) {
-  if (total === 0) return "Vazia";
-  return total === 1 ? "1 item" : `${total} itens`;
+  if (total === 0) return "Pasta vazia";
+  return total === 1 ? "1 material" : `${total} materiais`;
+}
+
+/**
+ * Compara ignorando acento e caixa.
+ *
+ * Quem digita "matematica" no celular espera achar "Matemática" — exigir o
+ * acento transforma o filtro em armadilha justamente para o texto em
+ * português.
+ */
+function matches(name: string, query: string): boolean {
+  const normalize = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+
+  return normalize(name).includes(normalize(query));
 }
 
 export function FoldersPage() {
@@ -55,6 +71,7 @@ export function FoldersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const { toasts, addToast, removeToast } = useToast();
 
   const loadFolders = useCallback(async () => {
@@ -115,6 +132,9 @@ export function FoldersPage() {
     }
   }
 
+  const visibleFolders =
+    query.trim() === "" ? folders : folders.filter((folder) => matches(folder.name, query));
+
   const subtitle = loading
     ? "Carregando…"
     : folders.length === 0
@@ -127,9 +147,9 @@ export function FoldersPage() {
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-28">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-text">Minhas pastas</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-text">Minhas pastas</h1>
             <p className="mt-1 text-sm text-text-muted">{subtitle}</p>
           </div>
 
@@ -137,145 +157,176 @@ export function FoldersPage() {
             icon={<FolderPlus size={18} aria-hidden="true" />}
             onClick={() => setShowCreateModal(true)}
           >
-            Nova pasta
+            Nova
           </Button>
         </div>
 
-        {loading ? (
-          <SkeletonList count={4} label="Carregando pastas" />
-        ) : folders.length === 0 ? (
-          <div role="status">
-            <Card padding="none" className="animate-rise-in border-dashed">
-              <EmptyState
-                icon={<FolderPlus size={26} />}
-                title="Nenhuma pasta ainda"
-                description="Pastas agrupam os materiais que você escaneia — por matéria, por prova, do jeito que fizer sentido."
-                action={
-                  <Button
-                    icon={<FolderPlus size={18} aria-hidden="true" />}
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    Criar primeira pasta
-                  </Button>
-                }
-              />
-            </Card>
+        {/* O filtro só aparece quando há pastas o bastante para procurar uma.
+            Com três, o campo custaria mais atenção do que economiza. */}
+        {folders.length > 4 && (
+          <div className="mt-4">
+            <Input
+              label="Filtrar pastas"
+              hideLabel
+              type="search"
+              icon={<Search size={17} />}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar pasta…"
+            />
           </div>
-        ) : (
-          <ul
-            className="grid animate-rise-in grid-cols-1 gap-3 sm:grid-cols-2"
-            aria-label="Lista de pastas"
-          >
-            {folders.map((folder) => (
-              <li key={folder.id}>
-                {editingId === folder.id ? (
-                  <Card elevation="raised" padding="md" className="h-full animate-fade-in">
-                    <Input
-                      label={`Novo nome da pasta ${folder.name}`}
-                      hideLabel
-                      value={editName}
-                      onChange={(event) => setEditName(event.target.value)}
-                      autoFocus
-                      className="bg-surface-sunken"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") void handleRename(folder.id);
-                        if (event.key === "Escape") setEditingId(null);
-                      }}
-                    />
-
-                    <div className="mt-3 flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
-                        Cancelar
-                      </Button>
-                      <Button
-                        size="sm"
-                        icon={<Check size={16} aria-hidden="true" />}
-                        disabled={!editName.trim()}
-                        onClick={() => void handleRename(folder.id)}
-                      >
-                        Salvar
-                      </Button>
-                    </div>
-                  </Card>
-                ) : (
-                  <Card padding="none" interactive className="flex h-full flex-col overflow-hidden">
-                    <Link
-                      to={`/folders/${folder.id}`}
-                      className="flex flex-1 items-center gap-3 p-4 transition-colors duration-150 hover:bg-surface-sunken"
-                      aria-label={`Abrir pasta ${folder.name}`}
-                    >
-                      {/* A cor da pasta é escolha de quem a criou e chega do
-                          banco: nenhum contraste pode ser garantido para ela.
-                          Por isso ela só tinge o traço deste ícone decorativo,
-                          nunca um texto nem um fundo com texto por cima. O
-                          significado continua no nome ao lado. */}
-                      <span
-                        className="grid size-11 shrink-0 place-items-center rounded-xl border border-border bg-surface-sunken"
-                        aria-hidden="true"
-                      >
-                        <Folder size={20} style={{ color: folder.color }} />
-                      </span>
-
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold text-text">
-                          {folder.name}
-                        </span>
-                        <span className="block text-xs text-text-subtle">
-                          {describeCount(folder._count?.contents ?? 0)}
-                        </span>
-                      </span>
-
-                      <ChevronRight
-                        size={18}
-                        className="shrink-0 text-text-subtle"
-                        aria-hidden="true"
-                      />
-                    </Link>
-
-                    <div className="flex items-center gap-0.5 border-t border-border px-2 py-1">
-                      <TTSButton text={folder.name} label={`pasta ${folder.name}`} />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingId(folder.id);
-                          setEditName(folder.name);
-                        }}
-                        aria-label={`Renomear pasta ${folder.name}`}
-                        className={cn(
-                          ICON_BUTTON,
-                          "ml-auto text-text-muted hover:bg-surface-sunken hover:text-text",
-                        )}
-                      >
-                        <Pencil size={16} aria-hidden="true" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(folder.id, folder.name)}
-                        disabled={deletingId === folder.id}
-                        aria-label={`Excluir pasta ${folder.name}`}
-                        className={cn(
-                          ICON_BUTTON,
-                          "text-danger hover:bg-danger-subtle disabled:opacity-50",
-                        )}
-                      >
-                        {deletingId === folder.id ? (
-                          <span
-                            className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <Trash2 size={16} aria-hidden="true" />
-                        )}
-                      </button>
-                    </div>
-                  </Card>
-                )}
-              </li>
-            ))}
-          </ul>
         )}
+
+        <div className="mt-5">
+          {loading ? (
+            <SkeletonList count={4} label="Carregando pastas" />
+          ) : folders.length === 0 ? (
+            <div role="status">
+              <Card padding="none" className="animate-rise-in border-dashed">
+                <EmptyState
+                  icon={<FolderPlus size={26} />}
+                  title="Nenhuma pasta ainda"
+                  description="Pastas agrupam os materiais que você escaneia — por matéria, por prova, do jeito que fizer sentido."
+                  action={
+                    <Button
+                      icon={<FolderPlus size={18} aria-hidden="true" />}
+                      onClick={() => setShowCreateModal(true)}
+                    >
+                      Criar primeira pasta
+                    </Button>
+                  }
+                />
+              </Card>
+            </div>
+          ) : (
+            <ul
+              className="grid animate-rise-in grid-cols-1 gap-3 sm:grid-cols-2"
+              aria-label="Lista de pastas"
+            >
+              {visibleFolders.map((folder) => (
+                <li key={folder.id}>
+                  {editingId === folder.id ? (
+                    <Card elevation="raised" padding="md" className="h-full animate-fade-in">
+                      <Input
+                        label={`Novo nome da pasta ${folder.name}`}
+                        hideLabel
+                        value={editName}
+                        onChange={(event) => setEditName(event.target.value)}
+                        autoFocus
+                        className="bg-surface-sunken"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") void handleRename(folder.id);
+                          if (event.key === "Escape") setEditingId(null);
+                        }}
+                      />
+
+                      <div className="mt-3 flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          icon={<Check size={16} aria-hidden="true" />}
+                          disabled={!editName.trim()}
+                          onClick={() => void handleRename(folder.id)}
+                        >
+                          Salvar
+                        </Button>
+                      </div>
+                    </Card>
+                  ) : (
+                    // Uma linha só. Antes as ações moravam numa segunda faixa
+                    // sob o nome, o que dobrava a altura de cada pasta e enchia a
+                    // lista de espaço vazio.
+                    <Card
+                      padding="none"
+                      interactive
+                      className="bg-surface-gradient group flex h-full items-center overflow-hidden"
+                    >
+                      <Link
+                        to={`/folders/${folder.id}`}
+                        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3 transition-colors duration-150"
+                        aria-label={`Abrir pasta ${folder.name}`}
+                      >
+                        {/* A cor da pasta é escolha de quem a criou e chega do
+                          banco: nenhum contraste pode ser garantido para ela.
+                          Por isso ela tinge só o traço deste ícone decorativo e
+                          um fundo translúcido sem texto por cima. O significado
+                          continua no nome ao lado. */}
+                        <span
+                          className="grid size-11 shrink-0 place-items-center rounded-xl border"
+                          style={{
+                            color: folder.color,
+                            borderColor: `${folder.color}40`,
+                            backgroundColor: `${folder.color}1f`,
+                          }}
+                          aria-hidden="true"
+                        >
+                          <Folder size={20} />
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold text-text">
+                            {folder.name}
+                          </span>
+                          <span className="block text-xs text-text-subtle">
+                            {describeCount(folder._count?.contents ?? 0)}
+                          </span>
+                        </span>
+                      </Link>
+
+                      <div className="flex shrink-0 items-center pr-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(folder.id);
+                            setEditName(folder.name);
+                          }}
+                          aria-label={`Renomear pasta ${folder.name}`}
+                          className={cn(
+                            ICON_BUTTON,
+                            "text-text-subtle hover:bg-surface-sunken hover:text-text",
+                          )}
+                        >
+                          <Pencil size={16} aria-hidden="true" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(folder.id, folder.name)}
+                          disabled={deletingId === folder.id}
+                          aria-label={`Excluir pasta ${folder.name}`}
+                          className={cn(
+                            ICON_BUTTON,
+                            "text-text-subtle hover:bg-danger-subtle hover:text-danger disabled:opacity-50",
+                          )}
+                        >
+                          {deletingId === folder.id ? (
+                            <span
+                              className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <Trash2 size={16} aria-hidden="true" />
+                          )}
+                        </button>
+
+                        <Link
+                          to={`/folders/${folder.id}`}
+                          aria-hidden="true"
+                          tabIndex={-1}
+                          className="grid size-8 place-items-center text-text-subtle transition-transform duration-200 ease-enter group-hover:translate-x-0.5"
+                        >
+                          <ChevronRight size={18} />
+                        </Link>
+                      </div>
+                    </Card>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </main>
 
       <BottomNav />

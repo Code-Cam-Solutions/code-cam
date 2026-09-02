@@ -246,9 +246,9 @@ export function ContentDetailPage() {
                 fullWidth
                 size="lg"
                 icon={<Play size={18} />}
-                onClick={() =>
-                  void navigate("/flashcards", { state: { flashcards: content.flashcards } })
-                }
+                // Estuda os cartões salvos, não uma cópia: é o que faz cada
+                // resposta contar para a repetição espaçada deste material.
+                onClick={() => void navigate(`/study/${content.id}`)}
                 aria-label={`Iniciar sessão com ${flashcardCount} flashcards`}
               >
                 Iniciar flashcards
