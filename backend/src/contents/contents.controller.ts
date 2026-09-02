@@ -14,6 +14,7 @@ import {
 import { ContentsService } from './contents.service';
 import { CreateContentDto } from './dto/create-content.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request';
 
 @Controller('contents')
 @UseGuards(JwtAuthGuard)
@@ -21,23 +22,23 @@ export class ContentsController {
   constructor(private readonly contentsService: ContentsService) {}
 
   @Post()
-  create(@Request() req, @Body() dto: CreateContentDto) {
+  create(@Request() req: AuthenticatedRequest, @Body() dto: CreateContentDto) {
     return this.contentsService.create(req.user.userId, dto);
   }
 
   @Get()
-  findAll(@Request() req, @Query('folderId') folderId?: string) {
+  findAll(@Request() req: AuthenticatedRequest, @Query('folderId') folderId?: string) {
     return this.contentsService.findAll(req.user.userId, folderId);
   }
 
   @Get(':id')
-  findOne(@Request() req, @Param('id') id: string) {
+  findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.contentsService.findOne(req.user.userId, id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Request() req, @Param('id') id: string) {
+  remove(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.contentsService.remove(req.user.userId, id);
   }
 }

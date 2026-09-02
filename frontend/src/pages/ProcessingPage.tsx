@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { scanImage } from "../services/api";
-import { Button } from "../components/Button";
+import { useRouteState } from "../types/navigation";
 
 const STEPS = [
   "Preparando imagem...",
@@ -14,14 +14,13 @@ const STEPS = [
 
 export function ProcessingPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const imageBlob: Blob | undefined = location.state?.imageBlob;
+  const { imageBlob } = useRouteState<"/processing">();
   const hasFired = useRef(false);
 
   useEffect(() => {
     // Guard: if accessed directly without a blob, send back to camera
     if (!imageBlob) {
-      navigate("/camera", { replace: true });
+      void navigate("/camera", { replace: true });
       return;
     }
 
@@ -29,20 +28,18 @@ export function ProcessingPage() {
     if (hasFired.current) return;
     hasFired.current = true;
 
-    async function process() {
+    async function process(blob: Blob) {
       try {
-        const result = await scanImage(imageBlob!);
-        navigate("/result", { state: { result }, replace: true });
+        const result = await scanImage(blob);
+        await navigate("/result", { state: { result }, replace: true });
       } catch (err) {
         const message =
-          err instanceof Error
-            ? err.message
-            : "Erro ao processar imagem. Tente novamente.";
-        navigate("/camera", { state: { scanError: message }, replace: true });
+          err instanceof Error ? err.message : "Erro ao processar imagem. Tente novamente.";
+        await navigate("/camera", { state: { scanError: message }, replace: true });
       }
     }
 
-    process();
+    void process(imageBlob);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -64,11 +61,7 @@ export function ProcessingPage() {
             className="absolute inset-0 rounded-full animate-ping"
             style={{ backgroundColor: "var(--color-codecam)" + "20" }}
           />
-          <Sparkles
-            size={40}
-            style={{ color: "var(--color-codecam)" }}
-            className="relative z-10"
-          />
+          <Sparkles size={40} style={{ color: "var(--color-codecam)" }} className="relative z-10" />
         </div>
 
         {/* Spinner */}
@@ -78,18 +71,12 @@ export function ProcessingPage() {
           aria-hidden="true"
         />
 
-        <h1
-          className="font-bold text-white mb-3"
-          style={{ fontSize: "var(--text-2xl)" }}
-        >
+        <h1 className="font-bold text-white mb-3" style={{ fontSize: "var(--text-2xl)" }}>
           Analisando...
         </h1>
 
         {/* Animated steps */}
-        <div
-          className="flex flex-col gap-2 mt-6"
-          aria-hidden="true"
-        >
+        <div className="flex flex-col gap-2 mt-6" aria-hidden="true">
           {STEPS.map((step, i) => (
             <StepItem key={step} text={step} delay={i * 1200} />
           ))}
@@ -120,10 +107,7 @@ function StepItem({ text, delay }: { text: string; delay: number }) {
         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
         style={{ backgroundColor: "var(--color-codecam)" }}
       />
-      <span
-        className="text-white"
-        style={{ fontSize: "var(--text-sm)" }}
-      >
+      <span className="text-white" style={{ fontSize: "var(--text-sm)" }}>
         {text}
       </span>
     </div>

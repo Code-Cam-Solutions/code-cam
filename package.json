@@ -1,0 +1,45 @@
+{
+  "name": "codecam",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CodeCam — plataforma de estudos acessível com IA",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c magenta,cyan \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "test": "npm --prefix backend run test && npm --prefix frontend run test",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2"
+  },
+  "//lint-staged": "O ESLint 9 resolve eslint.config.js pelo cwd. Delegar para um script de cada app garante o cwd certo — rodar o binário direto da raiz não encontra config nenhuma.",
+  "lint-staged": {
+    "backend/**/*.ts": [
+      "prettier --write",
+      "npm --prefix backend run lint:staged --"
+    ],
+    "frontend/**/*.{ts,tsx}": [
+      "prettier --write",
+      "npm --prefix frontend run lint:staged --"
+    ],
+    "**/*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
+  }
+}

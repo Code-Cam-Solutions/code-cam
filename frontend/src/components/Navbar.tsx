@@ -14,14 +14,14 @@ export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
 
   function handleLogout() {
     logout();
-    navigate("/login");
+    void navigate("/login");
   }
 
   function handleBack() {
     if (backTo) {
-      navigate(backTo);
+      void navigate(backTo);
     } else {
-      navigate(-1);
+      void navigate(-1);
     }
   }
 
@@ -62,25 +62,14 @@ export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
             className="flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam rounded-lg"
             aria-label="CodeCam - Página inicial"
           >
-            <img
-              src="/logo-codecam.svg"
-              alt=""
-              aria-hidden="true"
-              className="w-6 h-6"
-            />
-            <span
-              className="font-bold text-lg"
-              style={{ color: "var(--color-codecam)" }}
-            >
+            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="w-6 h-6" />
+            <span className="font-bold text-lg" style={{ color: "var(--color-codecam)" }}>
               CodeCam
             </span>
           </Link>
         )}
         {title && (
-          <h1
-            className="text-white font-semibold ml-1"
-            style={{ fontSize: "var(--text-lg)" }}
-          >
+          <h1 className="text-white font-semibold ml-1" style={{ fontSize: "var(--text-lg)" }}>
             {title}
           </h1>
         )}

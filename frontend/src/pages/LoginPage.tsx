@@ -24,7 +24,7 @@ export function LoginPage() {
     try {
       const data = await login(trimmed);
       authLogin(data);
-      navigate("/");
+      await navigate("/");
     } catch {
       setError("Não foi possível entrar. Verifique sua conexão e tente novamente.");
     } finally {
@@ -44,12 +44,7 @@ export function LoginPage() {
             className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
             style={{ backgroundColor: "var(--color-codecam)" }}
           >
-            <img
-              src="/logo-codecam.svg"
-              alt=""
-              aria-hidden="true"
-              className="w-12 h-12"
-            />
+            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="w-12 h-12" />
           </div>
           <h1
             className="font-bold text-white mb-1"
@@ -125,7 +120,8 @@ export function LoginPage() {
             style={{ color: "var(--color-codecam)", flexShrink: 0, marginTop: "2px" }}
           />
           <p style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-            Não é necessário senha. Basta digitar seu nome para começar a estudar com acessibilidade.
+            Não é necessário senha. Basta digitar seu nome para começar a estudar com
+            acessibilidade.
           </p>
         </div>
       </div>

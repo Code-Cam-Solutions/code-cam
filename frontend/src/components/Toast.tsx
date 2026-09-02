@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info";
@@ -61,10 +61,7 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, onClose }: ToastContainerProps) {
   return (
-    <div
-      className="fixed top-16 left-4 right-4 z-50 flex flex-col gap-2"
-      aria-label="Notificações"
-    >
+    <div className="fixed top-16 left-4 right-4 z-50 flex flex-col gap-2" aria-label="Notificações">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={onClose} />
       ))}
@@ -76,14 +73,18 @@ export function ToastContainer({ toasts, onClose }: ToastContainerProps) {
 export function useToast() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  function addToast(type: ToastType, message: string) {
+  // Estas funções entram em arrays de dependência de `useEffect`/`useCallback`
+  // nas páginas. Sem memoização elas mudam de identidade a cada render e
+  // disparam refetch em loop — por isso `useCallback` aqui não é otimização,
+  // é correção.
+  const addToast = useCallback((type: ToastType, message: string) => {
     const id = `${Date.now()}-${Math.random()}`;
     setToasts((prev) => [...prev, { id, type, message }]);
-  }
+  }, []);
 
-  function removeToast(id: string) {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  }
+  }, []);
 
   return { toasts, addToast, removeToast };
 }

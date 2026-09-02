@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContentDto } from './dto/create-content.dto';
 
@@ -25,8 +21,8 @@ export class ContentsService {
       data: {
         title: dto.title,
         summary: dto.summary,
-        topics: dto.topics as any,
-        flashcards: dto.flashcards as any,
+        topics: dto.topics,
+        flashcards: dto.flashcards,
         rawText: dto.rawText,
         imageUrl: dto.imageUrl,
         folderId: dto.folderId || null,

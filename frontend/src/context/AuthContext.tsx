@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface AuthUser {
   userId: string;
@@ -25,11 +20,18 @@ const AuthContext = createContext<AuthContextType | null>(null);
 function loadAuth(): AuthUser | null {
   try {
     const stored = localStorage.getItem(AUTH_KEY);
-    if (stored) return JSON.parse(stored);
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored) as Partial<AuthUser>;
+    // Uma sessão sem token é inutilizável: tratar como não autenticado em vez
+    // de deixar o app achar que está logado e falhar em toda requisição.
+    if (!parsed.token || !parsed.userId || !parsed.name) return null;
+
+    return { userId: parsed.userId, name: parsed.name, token: parsed.token };
   } catch {
-    // ignore
+    // JSON corrompido no storage: começar deslogado.
+    return null;
   }
-  return null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -46,9 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{ user, login, logout, isAuthenticated: !!user }}
-    >
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

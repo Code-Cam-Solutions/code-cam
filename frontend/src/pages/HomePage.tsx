@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
 import { BottomNav } from "../components/BottomNav";
 import { TTSButton } from "../components/TTSButton";
-import { Button } from "../components/Button";
 
 export function HomePage() {
   const { user } = useAuth();
@@ -18,10 +17,7 @@ export function HomePage() {
     >
       <Navbar />
 
-      <main
-        className="flex-1 px-4 pt-6 pb-24 max-w-2xl mx-auto w-full"
-        id="main-content"
-      >
+      <main className="flex-1 px-4 pt-6 pb-24 max-w-2xl mx-auto w-full" id="main-content">
         {/* Welcome */}
         <section
           className="mb-8 p-5 rounded-2xl"
@@ -71,10 +67,7 @@ export function HomePage() {
               >
                 <Camera size={28} color="white" aria-hidden="true" />
               </div>
-              <span
-                className="font-semibold text-white"
-                style={{ fontSize: "var(--text-lg)" }}
-              >
+              <span className="font-semibold text-white" style={{ fontSize: "var(--text-lg)" }}>
                 Escanear agora
               </span>
               <span

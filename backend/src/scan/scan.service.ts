@@ -6,12 +6,55 @@ import {
 } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export interface Flashcard {
+  question: string;
+  answer: string;
+}
+
 export interface ScanResult {
   title: string;
   summary: string;
   topics: string[];
-  flashcards: { question: string; answer: string }[];
+  flashcards: Flashcard[];
   rawText: string;
+}
+
+/**
+ * Formato bruto devolvido pelo Gemini. Todo campo é `unknown` de propósito:
+ * a resposta é texto gerado por um modelo, não um contrato — tipá-la como
+ * `ScanResult` seria mentir para o compilador sobre dados não confiáveis.
+ */
+interface RawScanResponse {
+  title?: unknown;
+  summary?: unknown;
+  topics?: unknown;
+  flashcards?: unknown;
+  rawText?: unknown;
+}
+
+/**
+ * Converte um valor desconhecido em texto.
+ *
+ * `String(valor)` não serve aqui: quando o modelo devolve um objeto onde se
+ * esperava texto, o resultado seria a string literal `"[object Object]"` sendo
+ * salva como título ou resumo do material do usuário.
+ */
+function toText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
+
+/** Converte um item desconhecido da resposta da IA em um flashcard válido. */
+function toFlashcard(value: unknown): Flashcard {
+  const record = (typeof value === 'object' && value !== null ? value : {}) as Record<
+    string,
+    unknown
+  >;
+  return {
+    question: toText(record.question),
+    answer: toText(record.answer),
+  };
 }
 
 @Injectable()
@@ -34,15 +77,11 @@ export class ScanService {
     }
 
     if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException(
-        'Arquivo inválido. Envie uma imagem (JPG, PNG, etc).',
-      );
+      throw new BadRequestException('Arquivo inválido. Envie uma imagem (JPG, PNG, etc).');
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      throw new BadRequestException(
-        'Imagem muito grande. Tamanho máximo: 10MB.',
-      );
+      throw new BadRequestException('Imagem muito grande. Tamanho máximo: 10MB.');
     }
 
     // If no API key, return mock data for development
@@ -91,9 +130,9 @@ Regras:
         .replace(/\s*```$/i, '')
         .trim();
 
-      let parsed: ScanResult;
+      let parsed: RawScanResponse;
       try {
-        parsed = JSON.parse(cleaned);
+        parsed = JSON.parse(cleaned) as RawScanResponse;
       } catch {
         this.logger.error(`Failed to parse Gemini response: ${text}`);
         throw new InternalServerErrorException(
@@ -103,28 +142,20 @@ Regras:
 
       // Validate structure
       if (!parsed.title || !parsed.summary) {
-        throw new InternalServerErrorException(
-          'Resposta da IA incompleta. Tente novamente.',
-        );
+        throw new InternalServerErrorException('Resposta da IA incompleta. Tente novamente.');
       }
 
       return {
-        title: String(parsed.title || ''),
-        summary: String(parsed.summary || ''),
-        topics: Array.isArray(parsed.topics) ? parsed.topics.map(String) : [],
-        flashcards: Array.isArray(parsed.flashcards)
-          ? parsed.flashcards.map((f: any) => ({
-              question: String(f.question || ''),
-              answer: String(f.answer || ''),
-            }))
+        title: toText(parsed.title),
+        summary: toText(parsed.summary),
+        topics: Array.isArray(parsed.topics)
+          ? parsed.topics.map(toText).filter((topic) => topic.length > 0)
           : [],
-        rawText: String(parsed.rawText || ''),
+        flashcards: Array.isArray(parsed.flashcards) ? parsed.flashcards.map(toFlashcard) : [],
+        rawText: toText(parsed.rawText),
       };
     } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      ) {
+      if (err instanceof BadRequestException || err instanceof InternalServerErrorException) {
         throw err;
       }
 
@@ -142,9 +173,7 @@ Regras:
         );
       }
 
-      throw new InternalServerErrorException(
-        'Erro ao processar imagem com a IA. Tente novamente.',
-      );
+      throw new InternalServerErrorException('Erro ao processar imagem com a IA. Tente novamente.');
     }
   }
 

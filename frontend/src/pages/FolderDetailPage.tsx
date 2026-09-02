@@ -35,10 +35,10 @@ export function FolderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, addToast]);
 
   useEffect(() => {
-    loadContents();
+    void loadContents();
   }, [loadContents]);
 
   async function handleDelete(contentId: string, title: string) {
@@ -109,7 +109,11 @@ export function FolderDetailPage() {
                       style={{ backgroundColor: "var(--color-codecam)" + "20" }}
                       aria-hidden="true"
                     >
-                      <BookOpen size={18} style={{ color: "var(--color-codecam)" }} aria-hidden="true" />
+                      <BookOpen
+                        size={18}
+                        style={{ color: "var(--color-codecam)" }}
+                        aria-hidden="true"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h2
@@ -120,7 +124,11 @@ export function FolderDetailPage() {
                       </h2>
                       <p
                         className="line-clamp-2 mb-1"
-                        style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)", lineHeight: "1.5" }}
+                        style={{
+                          color: "var(--color-text-muted)",
+                          fontSize: "var(--text-sm)",
+                          lineHeight: "1.5",
+                        }}
                       >
                         {content.summary}
                       </p>

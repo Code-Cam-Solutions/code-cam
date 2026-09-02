@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ImageIcon, RefreshCcw, Send, AlertTriangle } from "lucide-react";
 import { useCamera } from "../hooks/useCamera";
+import { useRouteState } from "../types/navigation";
 import { Navbar } from "../components/Navbar";
 import { Button } from "../components/Button";
 
 export function CameraPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { scanError } = useRouteState<"/camera">();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     videoRef,
@@ -22,12 +23,10 @@ export function CameraPage() {
   } = useCamera();
 
   // Error passed back from ProcessingPage on failure
-  const [sendError, setSendError] = useState<string>(
-    location.state?.scanError || ""
-  );
+  const [sendError, setSendError] = useState<string>(scanError ?? "");
 
   useEffect(() => {
-    startCamera();
+    void startCamera();
   }, [startCamera]);
 
   function handleCapture() {
@@ -49,14 +48,11 @@ export function CameraPage() {
     if (!capturedBlob) return;
     setSendError("");
     // Navigate to ProcessingPage passing the blob via state
-    navigate("/processing", { state: { imageBlob: capturedBlob } });
+    void navigate("/processing", { state: { imageBlob: capturedBlob } });
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: "#000" }}
-    >
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#000" }}>
       <div style={{ backgroundColor: "var(--color-background)" }}>
         <Navbar title="Câmera" showBack />
       </div>
@@ -101,10 +97,7 @@ export function CameraPage() {
 
           {/* Error state */}
           {state === "error" && error && (
-            <div
-              className="absolute inset-0 flex items-center justify-center p-6"
-              role="alert"
-            >
+            <div className="absolute inset-0 flex items-center justify-center p-6" role="alert">
               <div
                 className="p-6 rounded-2xl text-center max-w-xs"
                 style={{ backgroundColor: "var(--color-surface)" }}
@@ -143,7 +136,10 @@ export function CameraPage() {
           {/* Viewfinder overlay */}
           {state === "active" && (
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute inset-8 border-2 border-white/20 rounded-2xl" aria-hidden="true" />
+              <div
+                className="absolute inset-8 border-2 border-white/20 rounded-2xl"
+                aria-hidden="true"
+              />
             </div>
           )}
         </div>

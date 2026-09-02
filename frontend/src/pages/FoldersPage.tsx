@@ -9,19 +9,29 @@ import { Button } from "../components/Button";
 import { TTSButton } from "../components/TTSButton";
 import { useToast, ToastContainer } from "../components/Toast";
 import { SkeletonList } from "../components/SkeletonCard";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 
 const PALETTE = [
-  "#6C5CE7", "#0984E3", "#00B894", "#FDCB6E",
-  "#E17055", "#D63031", "#A29BFE", "#74B9FF",
-  "#55EFC4", "#FD79A8",
-];
+  "#6C5CE7",
+  "#0984E3",
+  "#00B894",
+  "#FDCB6E",
+  "#E17055",
+  "#D63031",
+  "#A29BFE",
+  "#74B9FF",
+  "#55EFC4",
+  "#FD79A8",
+] as const;
+
+type FolderColor = (typeof PALETTE)[number];
 
 export function FoldersPage() {
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newColor, setNewColor] = useState(PALETTE[0]);
+  const [newColor, setNewColor] = useState<FolderColor>(PALETTE[0]);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -38,11 +48,16 @@ export function FoldersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
-    loadFolders();
+    void loadFolders();
   }, [loadFolders]);
+
+  useEscapeKey(
+    showCreateModal,
+    useCallback(() => setShowCreateModal(false), []),
+  );
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -96,10 +111,7 @@ export function FoldersPage() {
 
       <main className="flex-1 px-4 pt-4 pb-24 max-w-2xl mx-auto w-full" id="main-content">
         <div className="flex items-center justify-between mb-4">
-          <h1
-            className="font-bold text-white"
-            style={{ fontSize: "var(--text-xl)" }}
-          >
+          <h1 className="font-bold text-white" style={{ fontSize: "var(--text-xl)" }}>
             Minhas Pastas
           </h1>
           <Button
@@ -151,7 +163,7 @@ export function FoldersPage() {
                         fontSize: "var(--text-sm)",
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRename(folder.id);
+                        if (e.key === "Enter") void handleRename(folder.id);
                         if (e.key === "Escape") setEditingId(null);
                       }}
                     />
@@ -160,7 +172,10 @@ export function FoldersPage() {
                         onClick={() => handleRename(folder.id)}
                         aria-label="Confirmar renomear"
                         className="flex-1 flex items-center justify-center py-2 rounded-lg transition-colors hover:opacity-80"
-                        style={{ backgroundColor: "var(--color-success)" + "30", color: "var(--color-success)" }}
+                        style={{
+                          backgroundColor: "var(--color-success)" + "30",
+                          color: "var(--color-success)",
+                        }}
                       >
                         <Check size={16} aria-hidden="true" />
                       </button>
@@ -168,7 +183,10 @@ export function FoldersPage() {
                         onClick={() => setEditingId(null)}
                         aria-label="Cancelar"
                         className="flex-1 flex items-center justify-center py-2 rounded-lg transition-colors hover:opacity-80"
-                        style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text-muted)" }}
+                        style={{
+                          backgroundColor: "var(--color-surface-2)",
+                          color: "var(--color-text-muted)",
+                        }}
                       >
                         <X size={16} aria-hidden="true" />
                       </button>
@@ -248,19 +266,20 @@ export function FoldersPage() {
 
       {/* Create folder modal */}
       {showCreateModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end"
-          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-folder-title"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowCreateModal(false);
-          }}
-        >
+        <div className="fixed inset-0 z-50 flex items-end">
+          {/* Backdrop puramente visual: o descarte por teclado é o Escape. */}
           <div
-            className="w-full rounded-t-3xl p-6 animate-fade-in"
+            className="absolute inset-0"
+            style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+            aria-hidden="true"
+            onMouseDown={() => setShowCreateModal(false)}
+          />
+          <div
+            className="relative w-full rounded-t-3xl p-6 animate-fade-in"
             style={{ backgroundColor: "var(--color-surface)" }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-folder-title"
           >
             <h2
               id="create-folder-title"
@@ -298,13 +317,14 @@ export function FoldersPage() {
             </div>
 
             <div className="mb-6">
-              <p
-                className="text-white mb-2"
-                style={{ fontSize: "var(--text-sm)" }}
-              >
+              <p className="text-white mb-2" style={{ fontSize: "var(--text-sm)" }}>
                 Cor
               </p>
-              <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Selecionar cor da pasta">
+              <div
+                className="flex flex-wrap gap-3"
+                role="radiogroup"
+                aria-label="Selecionar cor da pasta"
+              >
                 {PALETTE.map((color) => (
                   <button
                     key={color}
@@ -325,11 +345,7 @@ export function FoldersPage() {
             </div>
 
             <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                fullWidth
-                onClick={() => setShowCreateModal(false)}
-              >
+              <Button variant="ghost" fullWidth onClick={() => setShowCreateModal(false)}>
                 Cancelar
               </Button>
               <Button
