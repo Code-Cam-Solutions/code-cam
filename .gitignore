@@ -6,8 +6,9 @@ node_modules/
 # Build
 dist/
 build/
+*.tsbuildinfo
 
-# Environment
+# Environment — nunca versionar segredos
 .env
 .env.local
 .env.*.local
@@ -27,8 +28,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Prisma
-prisma/migrations/
-
-# Coverage
+# Testes e cobertura
 coverage/
+.vitest/
+
+# PWA — artefatos gerados no build
+frontend/dev-dist/
