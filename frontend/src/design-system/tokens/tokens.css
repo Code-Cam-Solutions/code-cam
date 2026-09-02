@@ -124,6 +124,14 @@
   --ds-danger: #c4283c;
   --ds-danger-subtle: #fceaec;
 
+  /* Gradiente da marca. O ponto de partida é o roxo do logotipo (#6D56F6):
+     os tokens de acento precisam ser mais escuros no tema claro para passar no
+     contraste de texto, então a cor da marca aparece onde contraste de texto
+     não se aplica — em superfícies grandes e decorativas. */
+  --ds-gradient-accent: linear-gradient(135deg, #5b4bd6 0%, #6d56f6 52%, #8a7bf5 100%);
+  --ds-gradient-surface: linear-gradient(180deg, #ffffff 0%, #fafaff 100%);
+  --ds-glow-accent: 0 0 48px -12px rgb(109 86 246 / 0.45);
+
   /* No claro a profundidade vem de sombra projetada. */
   --ds-shadow-sm: 0 1px 2px rgb(21 21 27 / 0.06);
   --ds-shadow-md: 0 2px 4px rgb(21 21 27 / 0.06), 0 4px 12px rgb(21 21 27 / 0.05);
@@ -153,6 +161,10 @@
   --ds-accent-hover: #9c8ff7;
   --ds-accent-contrast: #0e0e13;
   --ds-accent-subtle: #1d1b33;
+
+  --ds-gradient-accent: linear-gradient(135deg, #6d56f6 0%, #8a7bf5 55%, #a99bff 100%);
+  --ds-gradient-surface: linear-gradient(180deg, #1c1c25 0%, #16161d 100%);
+  --ds-glow-accent: 0 0 56px -10px rgb(138 123 245 / 0.5);
 
   --ds-success: #3dd68c;
   --ds-success-subtle: #10281e;
@@ -193,6 +205,10 @@
     --ds-accent-contrast: #0e0e13;
     --ds-accent-subtle: #1d1b33;
 
+    --ds-gradient-accent: linear-gradient(135deg, #6d56f6 0%, #8a7bf5 55%, #a99bff 100%);
+    --ds-gradient-surface: linear-gradient(180deg, #1c1c25 0%, #16161d 100%);
+    --ds-glow-accent: 0 0 56px -10px rgb(138 123 245 / 0.5);
+
     --ds-success: #3dd68c;
     --ds-success-subtle: #10281e;
     --ds-warning: #f5b547;
@@ -219,6 +235,13 @@
   --ds-shadow-md: none;
   --ds-shadow-lg: none;
   --ds-shadow-accent: none;
+
+  /* Degradê é o oposto do que este modo precisa: a transição entre duas cores
+     próximas apaga justamente o limite que quem tem baixa visão usa para ler a
+     forma. Vira cor chapada. */
+  --ds-gradient-accent: none;
+  --ds-gradient-surface: none;
+  --ds-glow-accent: none;
 }
 
 :root[data-theme="light"][data-contrast="high"],

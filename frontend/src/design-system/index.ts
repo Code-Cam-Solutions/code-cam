@@ -21,6 +21,7 @@ export { Dialog, type DialogProps } from "./primitives/Dialog";
 export { Badge, type BadgeProps, type BadgeTone } from "./primitives/Badge";
 export { Skeleton, SkeletonCard, SkeletonList, type SkeletonProps } from "./primitives/Skeleton";
 export { Progress, type ProgressProps } from "./primitives/Progress";
+export { Ring, type RingProps } from "./primitives/Ring";
 export { StatTile, type StatTileProps } from "./primitives/StatTile";
 export { EmptyState, type EmptyStateProps } from "./primitives/EmptyState";
 export { Switch, type SwitchProps } from "./primitives/Switch";

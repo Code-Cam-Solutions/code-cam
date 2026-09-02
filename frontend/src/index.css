@@ -247,6 +247,39 @@ input[type="radio"] {
   font-weight: 600;
 }
 
+/* ─── Superfícies da marca ─────────────────────────────────────────────────── */
+
+/* Gradiente de acento. Utilitário próprio em vez de `bg-gradient-to-br` do
+   Tailwind porque as paradas mudam com o tema — e no alto contraste o token
+   vira `none`, o que faz a cor de fundo abaixo dele reaparecer sozinha. */
+.bg-accent-gradient {
+  background-color: var(--ds-accent);
+  background-image: var(--ds-gradient-accent);
+}
+
+.bg-surface-gradient {
+  background-color: var(--ds-surface-raised);
+  background-image: var(--ds-gradient-surface);
+}
+
+.shadow-glow {
+  box-shadow: var(--ds-glow-accent);
+}
+
+/* Brilho difuso atrás de um elemento. Decorativo: sempre em `aria-hidden`. */
+.brand-glow {
+  position: absolute;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-accent);
+  opacity: 0.16;
+  filter: blur(64px);
+  pointer-events: none;
+}
+
+:root[data-contrast="high"] .brand-glow {
+  display: none;
+}
+
 /* ─── Animações ────────────────────────────────────────────────────────────── */
 
 @keyframes ds-fade-in {

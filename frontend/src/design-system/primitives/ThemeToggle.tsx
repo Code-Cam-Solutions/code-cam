@@ -1,5 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useAccessibility, type ThemePreference } from "../../context/AccessibilityContext";
+import { useAccessibility, type ThemePreference } from "@/shared/context/AccessibilityContext";
 import { cn } from "../utils/cn";
 
 const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
