@@ -197,57 +197,62 @@ O frontend estará disponível em `http://localhost:5173`.
 
 ## Estrutura do Projeto
 
+O backend separa três coisas que envelhecem em ritmos diferentes; um módulo de
+produto importa infraestrutura, o caminho contrário não existe. O frontend
+agrupa por funcionalidade: cada pasta em `features/` guarda suas páginas, seus
+componentes e seus hooks juntos.
+
 ```
 codecam/
-├── frontend/                  # React + Vite + TypeScript + Tailwind
-│   ├── src/
-│   │   ├── App.tsx            # Roteamento principal
-│   │   ├── main.tsx           # Entry point
-│   │   ├── index.css          # Estilos globais + acessibilidade
-│   │   ├── components/        # Componentes reutilizáveis
-│   │   │   ├── TTSButton.tsx  # Botão de leitura em voz alta
-│   │   │   ├── Button.tsx     # Botão acessível base
-│   │   │   ├── Navbar.tsx     # Barra de navegação superior
-│   │   │   ├── BottomNav.tsx  # Navegação inferior (tabs)
-│   │   │   ├── Toast.tsx      # Notificações acessíveis
-│   │   │   └── SkeletonCard.tsx
-│   │   ├── context/
-│   │   │   ├── AccessibilityContext.tsx  # Estado global de acessibilidade
-│   │   │   └── AuthContext.tsx           # Estado de autenticação
-│   │   ├── hooks/
-│   │   │   ├── useCamera.ts   # Acesso à câmera
-│   │   │   └── useTTS.ts      # Text-to-speech
-│   │   ├── pages/
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── HomePage.tsx
-│   │   │   ├── CameraPage.tsx
-│   │   │   ├── ProcessingPage.tsx
-│   │   │   ├── ResultPage.tsx
-│   │   │   ├── FlashcardsPage.tsx
-│   │   │   ├── FoldersPage.tsx
-│   │   │   ├── FolderDetailPage.tsx
-│   │   │   ├── ContentDetailPage.tsx
-│   │   │   └── SettingsPage.tsx
-│   │   └── services/
-│   │       └── api.ts         # Cliente HTTP para o backend
-│   └── public/
-│       └── logo-codecam.svg
+├── frontend/
+│   └── src/
+│       ├── api/            # Cliente HTTP e uma função por operação do produto
+│       ├── app/            # Rotas e provedores
+│       ├── design-system/   # Tokens e primitivas — nenhuma tela cita um hex
+│       ├── features/
+│       │   ├── auth/       # Entrada
+│       │   ├── capture/    # Câmera, conferência, formatos, processamento, resultado
+│       │   ├── home/       # Painel com as estatísticas de estudo
+│       │   ├── library/    # Pastas, materiais e busca
+│       │   ├── settings/   # Acessibilidade e instalação do app
+│       │   └── study/      # Sessão de revisão com repetição espaçada
+│       └── shared/         # Componentes, hooks e contextos de uso geral
 │
-└── backend/                   # NestJS + Prisma + PostgreSQL
-    ├── src/
-    │   ├── main.ts
-    │   ├── app.module.ts
-    │   ├── health/            # GET /health
-    │   ├── prisma/            # PrismaService global
-    │   ├── auth/              # POST /auth/login (JWT)
-    │   ├── scan/              # POST /scan (Gemini)
-    │   ├── folders/           # CRUD /folders
-    │   └── contents/          # CRUD /contents
-    └── prisma/
-        └── schema.prisma
+└── backend/
+    └── src/
+        ├── config/         # Validação das variáveis de ambiente no boot
+        ├── common/         # Decorators e tipos compartilhados
+        ├── infra/          # Fronteiras externas: Prisma e Gemini
+        └── modules/        # auth, scan, folders, contents, study, stats, search
 ```
 
----
+## API
+
+| Método                        | Rota                         | O que faz                                               |
+| ----------------------------- | ---------------------------- | ------------------------------------------------------- |
+| `POST`                        | `/auth/login`                | Entra pelo nome e devolve o token                       |
+| `POST`                        | `/scan`                      | Analisa a foto; `formats` escolhe o que gerar           |
+| `GET` `POST` `PATCH` `DELETE` | `/folders`                   | CRUD de pastas                                          |
+| `GET` `POST` `DELETE`         | `/contents`                  | Materiais salvos                                        |
+| `GET`                         | `/study/queue`               | Cartões vencidos, do mais atrasado ao menos             |
+| `GET`                         | `/study/contents/:id`        | Todos os cartões de um material                         |
+| `POST`                        | `/study/sessions`            | Abre uma sessão de estudo                               |
+| `POST`                        | `/study/sessions/:id/finish` | Fecha e devolve o placar                                |
+| `POST`                        | `/study/reviews`             | Grava a avaliação e reagenda o cartão (SM-2)            |
+| `GET`                         | `/stats/overview`            | Painel: vencidos, domínio, sequência, acerto, atividade |
+| `GET`                         | `/search?q=`                 | Busca full-text nos materiais                           |
+
+## Repetição espaçada
+
+Os cartões são agendados pelo SM-2, o algoritmo do SuperMemo na variante que o
+Anki popularizou: o intervalo até a próxima revisão cresce a cada acerto,
+multiplicado por um fator de facilidade que o próprio desempenho ajusta. A
+revisão acontece no ponto em que a memória está prestes a falhar — nem antes,
+que é desperdício, nem depois, quando o conteúdo já se perdeu.
+
+O algoritmo vive isolado em `backend/src/modules/study/spaced-repetition.ts`,
+como função pura e coberto por testes. O app oferece três notas — "Não sei",
+"Quase" e "Sei" —, que mapeiam para AGAIN, HARD e GOOD.
 
 ## Fluxo Principal
 
