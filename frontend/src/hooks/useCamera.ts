@@ -1,11 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 
-export type CameraState =
-  | "idle"
-  | "requesting"
-  | "active"
-  | "captured"
-  | "error";
+export type CameraState = "idle" | "requesting" | "active" | "captured" | "error";
 
 export interface CameraError {
   type: "permission" | "not-found" | "not-supported" | "unknown";
@@ -48,7 +43,9 @@ export function useCamera() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        // `play()` rejeita quando o navegador bloqueia autoplay; o vídeo é mudo
+        // e vai iniciar na interação seguinte, então a rejeição é ignorável.
+        void videoRef.current.play().catch(() => undefined);
       }
 
       setState("active");
@@ -62,14 +59,10 @@ export function useCamera() {
             message:
               "Acesso à câmera negado. Toque no ícone de câmera na barra de endereços e permita o acesso.",
           };
-        } else if (
-          err.name === "NotFoundError" ||
-          err.name === "DevicesNotFoundError"
-        ) {
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
           cameraError = {
             type: "not-found",
-            message:
-              "Nenhuma câmera encontrada. Verifique se seu dispositivo possui câmera.",
+            message: "Nenhuma câmera encontrada. Verifique se seu dispositivo possui câmera.",
           };
         } else {
           cameraError = {
@@ -119,6 +112,8 @@ export function useCamera() {
 
     // Convert to blob
     const base64Data = dataUrl.split(",")[1];
+    if (!base64Data) return null;
+
     const binaryStr = atob(base64Data);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
@@ -130,14 +125,17 @@ export function useCamera() {
     return blob;
   }, [stopCamera]);
 
-  const loadFromGallery = useCallback((file: File): Blob => {
-    const url = URL.createObjectURL(file);
-    setCapturedImage(url);
-    setCapturedBlob(file);
-    setState("captured");
-    stopCamera();
-    return file;
-  }, [stopCamera]);
+  const loadFromGallery = useCallback(
+    (file: File): Blob => {
+      const url = URL.createObjectURL(file);
+      setCapturedImage(url);
+      setCapturedBlob(file);
+      setState("captured");
+      stopCamera();
+      return file;
+    },
+    [stopCamera],
+  );
 
   const reset = useCallback(() => {
     setCapturedImage(null);

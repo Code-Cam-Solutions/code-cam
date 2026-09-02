@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type FontSize = "sm" | "md" | "lg" | "xl";
 
@@ -43,13 +37,16 @@ const AccessibilityContext = createContext<AccessibilityContextType | null>(null
 function loadSettings(): AccessibilitySettings {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return { ...defaultSettings, ...JSON.parse(stored) };
-    }
+    if (!stored) return defaultSettings;
+
+    // Mesclar sobre os padrões mantém as preferências salvas válidas mesmo
+    // quando uma nova opção é adicionada em uma versão posterior do app.
+    const parsed = JSON.parse(stored) as Partial<AccessibilitySettings>;
+    return { ...defaultSettings, ...parsed };
   } catch {
-    // ignore
+    // Preferências corrompidas: voltar ao padrão acessível.
+    return defaultSettings;
   }
-  return defaultSettings;
 }
 
 function saveSettings(settings: AccessibilitySettings) {

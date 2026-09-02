@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: { componentStack: string }) {
+  override componentDidCatch(error: Error, info: { componentStack: string }) {
     console.error("[ErrorBoundary]", error, info.componentStack);
   }
 
@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.href = "/";
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 
@@ -45,17 +45,10 @@ export class ErrorBoundary extends Component<Props, State> {
             className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
             style={{ backgroundColor: "var(--color-error)" + "20" }}
           >
-            <AlertTriangle
-              size={36}
-              style={{ color: "var(--color-error)" }}
-              aria-hidden="true"
-            />
+            <AlertTriangle size={36} style={{ color: "var(--color-error)" }} aria-hidden="true" />
           </div>
 
-          <h1
-            className="font-bold text-white mb-3"
-            style={{ fontSize: "var(--text-2xl)" }}
-          >
+          <h1 className="font-bold text-white mb-3" style={{ fontSize: "var(--text-2xl)" }}>
             Algo deu errado
           </h1>
 

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useCallback, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import {
   BookOpen,
   ListChecks,
@@ -10,8 +10,9 @@ import {
   ChevronUp,
   Check,
 } from "lucide-react";
-import type { ScanResult } from "../services/api";
 import { getFolders, saveContent, createFolder } from "../services/api";
+import { useRouteState } from "../types/navigation";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { Navbar } from "../components/Navbar";
 import { BottomNav } from "../components/BottomNav";
 import { TTSButton } from "../components/TTSButton";
@@ -19,9 +20,8 @@ import { Button } from "../components/Button";
 import { useToast, ToastContainer } from "../components/Toast";
 
 export function ResultPage() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const result: ScanResult | undefined = location.state?.result;
+  const { result } = useRouteState<"/result">();
   const { toasts, addToast, removeToast } = useToast();
 
   const [showRawText, setShowRawText] = useState(false);
@@ -32,6 +32,11 @@ export function ResultPage() {
   const [saved, setSaved] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
+
+  useEscapeKey(
+    showSaveModal,
+    useCallback(() => setShowSaveModal(false), []),
+  );
 
   if (!result) {
     return (
@@ -63,6 +68,8 @@ export function ResultPage() {
   }
 
   async function handleSave(folderId?: string) {
+    if (!result) return;
+
     setSavingTo(folderId || "none");
     try {
       await saveContent({
@@ -143,10 +150,7 @@ export function ResultPage() {
             </div>
             <TTSButton text={result.summary} label="resumo" />
           </div>
-          <p
-            className="text-white"
-            style={{ fontSize: "var(--text-sm)", lineHeight: "1.7" }}
-          >
+          <p className="text-white" style={{ fontSize: "var(--text-sm)", lineHeight: "1.7" }}>
             {result.summary}
           </p>
         </section>
@@ -248,9 +252,17 @@ export function ResultPage() {
               Texto extraído
             </span>
             {showRawText ? (
-              <ChevronUp size={18} style={{ color: "var(--color-text-muted)" }} aria-hidden="true" />
+              <ChevronUp
+                size={18}
+                style={{ color: "var(--color-text-muted)" }}
+                aria-hidden="true"
+              />
             ) : (
-              <ChevronDown size={18} style={{ color: "var(--color-text-muted)" }} aria-hidden="true" />
+              <ChevronDown
+                size={18}
+                style={{ color: "var(--color-text-muted)" }}
+                aria-hidden="true"
+              />
             )}
           </button>
           {showRawText && (
@@ -309,19 +321,20 @@ export function ResultPage() {
 
       {/* Save modal */}
       {showSaveModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end"
-          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="save-modal-title"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowSaveModal(false);
-          }}
-        >
+        <div className="fixed inset-0 z-50 flex items-end">
+          {/* Backdrop puramente visual: o descarte por teclado é o Escape. */}
           <div
-            className="w-full rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in"
+            className="absolute inset-0"
+            style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+            aria-hidden="true"
+            onMouseDown={() => setShowSaveModal(false)}
+          />
+          <div
+            className="relative w-full rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in"
             style={{ backgroundColor: "var(--color-surface)" }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="save-modal-title"
           >
             <h2
               id="save-modal-title"
@@ -338,7 +351,11 @@ export function ResultPage() {
               className="w-full flex items-center gap-3 p-3 rounded-xl mb-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
               style={{ border: "1px dashed var(--color-border)" }}
             >
-              <FolderPlus size={20} style={{ color: "var(--color-text-muted)" }} aria-hidden="true" />
+              <FolderPlus
+                size={20}
+                style={{ color: "var(--color-text-muted)" }}
+                aria-hidden="true"
+              />
               <span className="text-white" style={{ fontSize: "var(--text-base)" }}>
                 Sem pasta (geral)
               </span>

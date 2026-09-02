@@ -1,22 +1,40 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+/**
+ * `Response.json()` devolve `any`. Centralizar a desserialização em um único
+ * ponto mantém a asserção de tipo na fronteira da rede, em vez de espalhar
+ * `any` por todas as chamadas.
+ */
+async function parseJson<T>(res: Response): Promise<T> {
+  return (await res.json()) as T;
+}
+
 function getAuthHeaders(): Record<string, string> {
   try {
     const stored = localStorage.getItem("codecam-auth");
     if (stored) {
-      const { token } = JSON.parse(stored);
+      const { token } = JSON.parse(stored) as { token?: string };
       if (token) return { Authorization: `Bearer ${token}` };
     }
   } catch {
-    // ignore
+    // Sessão corrompida no storage: seguir sem credencial.
   }
   return {};
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+/** Extrai a mensagem de erro do backend, tolerando corpos vazios ou não-JSON. */
+async function extractErrorMessage(res: Response): Promise<string> {
+  const fallback = `Erro ${res.status}`;
+  try {
+    const body = await parseJson<{ message?: string | string[] }>(res);
+    if (Array.isArray(body.message)) return body.message.join(", ") || fallback;
+    return body.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const headers: Record<string, string> = {
     ...getAuthHeaders(),
@@ -26,17 +44,10 @@ async function request<T>(
   const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
-    let message = `Erro ${res.status}`;
-    try {
-      const data = await res.json();
-      message = data.message || message;
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
+    throw new Error(await extractErrorMessage(res));
   }
 
-  return res.json() as Promise<T>;
+  return parseJson<T>(res);
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
@@ -55,11 +66,18 @@ export async function login(name: string): Promise<LoginResponse> {
 }
 
 // ─── Scan ──────────────────────────────────────────────────────────────────
+
+/** Par pergunta/resposta gerado pela IA. Fonte única da forma do flashcard. */
+export interface Flashcard {
+  question: string;
+  answer: string;
+}
+
 export interface ScanResult {
   title: string;
   summary: string;
   topics: string[];
-  flashcards: { question: string; answer: string }[];
+  flashcards: Flashcard[];
   rawText: string;
 }
 
@@ -75,17 +93,10 @@ export async function scanImage(imageBlob: Blob): Promise<ScanResult> {
   });
 
   if (!res.ok) {
-    let message = `Erro ${res.status}`;
-    try {
-      const data = await res.json();
-      message = data.message || message;
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
+    throw new Error(await extractErrorMessage(res));
   }
 
-  return res.json() as Promise<ScanResult>;
+  return parseJson<ScanResult>(res);
 }
 
 // ─── Folders ───────────────────────────────────────────────────────────────
@@ -111,7 +122,7 @@ export async function createFolder(name: string, color: string): Promise<Folder>
 
 export async function updateFolder(
   id: string,
-  data: { name?: string; color?: string }
+  data: { name?: string; color?: string },
 ): Promise<Folder> {
   return request<Folder>(`/folders/${id}`, {
     method: "PATCH",
@@ -130,7 +141,7 @@ export interface Content {
   title: string;
   summary: string;
   topics: string[];
-  flashcards: { question: string; answer: string }[];
+  flashcards: Flashcard[];
   rawText: string;
   imageUrl?: string;
   folderId?: string;
@@ -150,7 +161,7 @@ export async function saveContent(data: {
   title: string;
   summary: string;
   topics: string[];
-  flashcards: { question: string; answer: string }[];
+  flashcards: Flashcard[];
   rawText: string;
   folderId?: string;
 }): Promise<Content> {

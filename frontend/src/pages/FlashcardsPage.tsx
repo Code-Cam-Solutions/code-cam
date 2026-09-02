@@ -1,16 +1,13 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { RotateCcw, ChevronRight } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { TTSButton } from "../components/TTSButton";
 import { Button } from "../components/Button";
+import type { Flashcard } from "../services/api";
+import { useRouteState } from "../types/navigation";
 
 type Score = "correct" | "almost" | "wrong";
-
-interface Flashcard {
-  question: string;
-  answer: string;
-}
 
 interface FlashcardResult {
   card: Flashcard;
@@ -18,9 +15,8 @@ interface FlashcardResult {
 }
 
 export function FlashcardsPage() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const flashcards: Flashcard[] = location.state?.flashcards || [];
+  const { flashcards = [] } = useRouteState<"/flashcards">();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -30,7 +26,7 @@ export function FlashcardsPage() {
   const current = flashcards[currentIndex];
   const total = flashcards.length;
 
-  if (total === 0) {
+  if (total === 0 || !current) {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
@@ -47,6 +43,8 @@ export function FlashcardsPage() {
   }
 
   function handleScore(score: Score) {
+    if (!current) return;
+
     const newResults = [...results, { card: current, score }];
     setResults(newResults);
 
@@ -74,9 +72,12 @@ export function FlashcardsPage() {
   const scorePercent = Math.round((scoreCount.correct / total) * 100);
 
   function getGrade() {
-    if (scorePercent >= 80) return { emoji: "🎉", text: "Excelente!", color: "var(--color-success)" };
-    if (scorePercent >= 60) return { emoji: "👍", text: "Bom trabalho!", color: "var(--color-codecam)" };
-    if (scorePercent >= 40) return { emoji: "📚", text: "Continue praticando!", color: "var(--color-warning)" };
+    if (scorePercent >= 80)
+      return { emoji: "🎉", text: "Excelente!", color: "var(--color-success)" };
+    if (scorePercent >= 60)
+      return { emoji: "👍", text: "Bom trabalho!", color: "var(--color-codecam)" };
+    if (scorePercent >= 40)
+      return { emoji: "📚", text: "Continue praticando!", color: "var(--color-warning)" };
     return { emoji: "💪", text: "Não desista, tente novamente!", color: "var(--color-error)" };
   }
 
@@ -95,7 +96,9 @@ export function FlashcardsPage() {
           id="main-content"
         >
           <div className="w-full max-w-sm text-center animate-fade-in">
-            <div className="text-6xl mb-4" aria-hidden="true">{grade.emoji}</div>
+            <div className="text-6xl mb-4" aria-hidden="true">
+              {grade.emoji}
+            </div>
 
             <div className="flex items-center justify-center gap-2 mb-2">
               <h1
@@ -186,7 +189,10 @@ export function FlashcardsPage() {
     >
       <Navbar title="Flashcards" showBack />
 
-      <main className="flex-1 flex flex-col px-4 pt-4 pb-8 max-w-lg mx-auto w-full" id="main-content">
+      <main
+        className="flex-1 flex flex-col px-4 pt-4 pb-8 max-w-lg mx-auto w-full"
+        id="main-content"
+      >
         {/* Progress */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
@@ -197,7 +203,7 @@ export function FlashcardsPage() {
               {currentIndex + 1} / {total}
             </span>
             <span style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-              {Math.round(((currentIndex) / total) * 100)}%
+              {Math.round((currentIndex / total) * 100)}%
             </span>
           </div>
           <div
@@ -221,14 +227,8 @@ export function FlashcardsPage() {
 
         {/* Flashcard */}
         <div className="flex-1 flex flex-col justify-center mb-6">
-          <div
-            className="flashcard-container w-full"
-            style={{ height: "280px" }}
-          >
-            <div
-              className={`flashcard-inner ${flipped ? "flipped" : ""}`}
-              aria-live="polite"
-            >
+          <div className="flashcard-container w-full" style={{ height: "280px" }}>
+            <div className={`flashcard-inner ${flipped ? "flipped" : ""}`} aria-live="polite">
               {/* Front - Question */}
               <div
                 className="flashcard-front flex flex-col items-center justify-center p-6 rounded-2xl"
@@ -259,7 +259,10 @@ export function FlashcardsPage() {
               {/* Back - Answer */}
               <div
                 className="flashcard-back flex flex-col items-center justify-center p-6 rounded-2xl"
-                style={{ backgroundColor: "var(--color-codecam)" + "15", border: "1px solid var(--color-codecam)" + "40" }}
+                style={{
+                  backgroundColor: "var(--color-codecam)" + "15",
+                  border: "1px solid var(--color-codecam)" + "40",
+                }}
               >
                 <div
                   className="text-xs font-semibold uppercase tracking-wider mb-4 px-3 py-1 rounded-full"
