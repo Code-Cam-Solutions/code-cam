@@ -3,20 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import type { Env } from '@config/env.validation';
+import { buildCorsOptions } from '@config/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService<Env, true>);
 
-  app.enableCors({
-    // Lista explícita em vez de `origin: true`, que refletia qualquer origem —
-    // com `credentials: true` isso equivale a liberar a API para qualquer site
-    // que o usuário visite enquanto estiver logado.
-    origin: config.get('FRONTEND_URL', { infer: true }),
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  });
+  app.enableCors(
+    buildCorsOptions(
+      config.get('FRONTEND_URL', { infer: true }),
+      process.env.NODE_ENV === 'production',
+    ),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({

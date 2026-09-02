@@ -6,7 +6,30 @@
  * mensagem em português — mora aqui, e não espalhado por cada chamada.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+/** Porta em que o backend roda em desenvolvimento. */
+const DEV_API_PORT = 3000;
+
+/**
+ * Onde a API está.
+ *
+ * `VITE_API_URL` manda quando existe — é assim que o deploy aponta para o
+ * Railway. Sem ela, o endereço é deduzido de onde a própria página está sendo
+ * servida, e não fixado em `localhost`.
+ *
+ * A diferença importa porque o CodeCam é aberto por QR Code, no celular:
+ * a página vem de `http://192.168.0.7:5173` e, com `localhost` no código, o
+ * celular tentaria falar com ele mesmo. O login falhava com "verifique sua
+ * conexão" em todo aparelho que não fosse a máquina de desenvolvimento.
+ */
+function resolveBaseUrl(): string {
+  const configured = import.meta.env.VITE_API_URL;
+  if (configured) return configured.replace(/\/$/, "");
+
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:${DEV_API_PORT}`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export const AUTH_STORAGE_KEY = "codecam-auth";
 
