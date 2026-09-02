@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@infra/prisma/prisma.service';
 import { CreateContentDto } from './dto/create-content.dto';
+import { ListContentsDto } from './dto/list-contents.dto';
 
 /**
  * Flashcards deixaram de ser uma coluna Json e viraram tabela própria, mas o
@@ -54,11 +55,11 @@ export class ContentsService {
     });
   }
 
-  async findAll(userId: string, folderId?: string) {
+  async findAll(userId: string, filters: ListContentsDto = {}) {
     return this.prisma.content.findMany({
       where: {
         userId,
-        ...(folderId ? { folderId } : {}),
+        ...(filters.folderId ? { folderId: filters.folderId } : {}),
       },
       orderBy: { createdAt: 'desc' },
       include: CONTENT_WITH_FLASHCARDS,
