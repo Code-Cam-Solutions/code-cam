@@ -1,8 +1,21 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type FontSize = "sm" | "md" | "lg" | "xl";
 
+/** `system` acompanha a preferência do sistema operacional em tempo real. */
+export type ThemePreference = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
+
 export interface AccessibilitySettings {
+  theme: ThemePreference;
   fontSize: FontSize;
   openDyslexic: boolean;
   highContrast: boolean;
@@ -12,6 +25,9 @@ export interface AccessibilitySettings {
 
 interface AccessibilityContextType {
   settings: AccessibilitySettings;
+  /** O tema em vigor: `system` já resolvido para claro ou escuro. */
+  resolvedTheme: ResolvedTheme;
+  setTheme: (theme: ThemePreference) => void;
   setFontSize: (size: FontSize) => void;
   toggleOpenDyslexic: () => void;
   toggleHighContrast: () => void;
@@ -23,6 +39,7 @@ interface AccessibilityContextType {
 }
 
 const defaultSettings: AccessibilitySettings = {
+  theme: "system",
   fontSize: "md",
   openDyslexic: false,
   highContrast: false,
@@ -31,6 +48,7 @@ const defaultSettings: AccessibilitySettings = {
 };
 
 const STORAGE_KEY = "codecam-accessibility";
+const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 const AccessibilityContext = createContext<AccessibilityContextType | null>(null);
 
@@ -53,113 +71,155 @@ function saveSettings(settings: AccessibilitySettings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch {
-    // ignore
+    // Storage indisponível (aba anônima, cota cheia): as preferências valem
+    // para esta sessão e o app segue funcionando.
   }
 }
 
-function applySettings(settings: AccessibilitySettings) {
-  const html = document.documentElement;
+function systemTheme(): ResolvedTheme {
+  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+}
 
-  // Font size
-  html.dataset.fontSize = settings.fontSize;
+/**
+ * Escreve as preferências como atributos de `<html>`, de onde o CSS as lê.
+ *
+ * Nenhum componente consulta estas configurações para escolher cor: o tema
+ * troca os tokens e a interface inteira acompanha.
+ */
+function applyToDocument(settings: AccessibilitySettings, resolved: ResolvedTheme) {
+  const root = document.documentElement;
 
-  // OpenDyslexic
-  if (settings.openDyslexic) {
-    html.classList.add("dyslexic");
+  root.dataset.theme = resolved;
+  root.dataset.fontSize = settings.fontSize;
+
+  if (settings.highContrast) {
+    root.dataset.contrast = "high";
   } else {
-    html.classList.remove("dyslexic");
+    delete root.dataset.contrast;
   }
 
-  // High contrast
-  if (settings.highContrast) {
-    html.classList.add("high-contrast");
+  if (settings.openDyslexic) {
+    root.dataset.dyslexic = "true";
   } else {
-    html.classList.remove("high-contrast");
+    delete root.dataset.dyslexic;
   }
 }
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AccessibilitySettings>(loadSettings);
+  const [systemPreference, setSystemPreference] = useState<ResolvedTheme>(systemTheme);
+
+  // Quem escolheu "system" espera que o app acompanhe a troca automática do
+  // aparelho ao anoitecer, sem precisar recarregar a página.
+  useEffect(() => {
+    const media = window.matchMedia(DARK_QUERY);
+    const onChange = (event: MediaQueryListEvent) => {
+      setSystemPreference(event.matches ? "dark" : "light");
+    };
+
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  const resolvedTheme: ResolvedTheme =
+    settings.theme === "system" ? systemPreference : settings.theme;
 
   useEffect(() => {
-    applySettings(settings);
+    applyToDocument(settings, resolvedTheme);
     saveSettings(settings);
-  }, [settings]);
+  }, [settings, resolvedTheme]);
 
-  function setFontSize(size: FontSize) {
-    setSettings((prev) => ({ ...prev, fontSize: size }));
-  }
+  const setTheme = useCallback((theme: ThemePreference) => {
+    setSettings((prev) => ({ ...prev, theme }));
+  }, []);
 
-  function toggleOpenDyslexic() {
+  const setFontSize = useCallback((fontSize: FontSize) => {
+    setSettings((prev) => ({ ...prev, fontSize }));
+  }, []);
+
+  const toggleOpenDyslexic = useCallback(() => {
     setSettings((prev) => ({ ...prev, openDyslexic: !prev.openDyslexic }));
-  }
+  }, []);
 
-  function toggleHighContrast() {
+  const toggleHighContrast = useCallback(() => {
     setSettings((prev) => ({ ...prev, highContrast: !prev.highContrast }));
-  }
+  }, []);
 
-  function toggleTTS() {
+  const toggleTTS = useCallback(() => {
     setSettings((prev) => ({ ...prev, ttsEnabled: !prev.ttsEnabled }));
-  }
+  }, []);
 
-  function setTTSRate(rate: number) {
-    setSettings((prev) => ({ ...prev, ttsRate: rate }));
-  }
+  const setTTSRate = useCallback((ttsRate: number) => {
+    setSettings((prev) => ({ ...prev, ttsRate }));
+  }, []);
 
-  function resetSettings() {
+  const resetSettings = useCallback(() => {
     setSettings(defaultSettings);
-  }
+  }, []);
 
-  function speak(text: string) {
-    if (!settings.ttsEnabled) return;
-    if (!("speechSynthesis" in window)) return;
+  const speak = useCallback(
+    (text: string) => {
+      if (!settings.ttsEnabled) return;
+      if (!("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "pt-BR";
-    utterance.rate = settings.ttsRate;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    // Try to find a Portuguese voice
-    const voices = window.speechSynthesis.getVoices();
-    const ptVoice =
-      voices.find((v) => v.lang.startsWith("pt") && v.localService) ||
-      voices.find((v) => v.lang.startsWith("pt"));
-    if (ptVoice) utterance.voice = ptVoice;
-
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function stopSpeaking() {
-    if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-    }
-  }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "pt-BR";
+      utterance.rate = settings.ttsRate;
 
-  return (
-    <AccessibilityContext.Provider
-      value={{
-        settings,
-        setFontSize,
-        toggleOpenDyslexic,
-        toggleHighContrast,
-        toggleTTS,
-        setTTSRate,
-        resetSettings,
-        speak,
-        stopSpeaking,
-      }}
-    >
-      {children}
-    </AccessibilityContext.Provider>
+      // Vozes locais soam melhor e não dependem de rede; as remotas ficam como
+      // segunda opção para quem não tem voz em português instalada.
+      const voices = window.speechSynthesis.getVoices();
+      const portuguese =
+        voices.find((voice) => voice.lang.startsWith("pt") && voice.localService) ??
+        voices.find((voice) => voice.lang.startsWith("pt"));
+      if (portuguese) utterance.voice = portuguese;
+
+      window.speechSynthesis.speak(utterance);
+    },
+    [settings.ttsEnabled, settings.ttsRate],
   );
+
+  const stopSpeaking = useCallback(() => {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      settings,
+      resolvedTheme,
+      setTheme,
+      setFontSize,
+      toggleOpenDyslexic,
+      toggleHighContrast,
+      toggleTTS,
+      setTTSRate,
+      resetSettings,
+      speak,
+      stopSpeaking,
+    }),
+    [
+      settings,
+      resolvedTheme,
+      setTheme,
+      setFontSize,
+      toggleOpenDyslexic,
+      toggleHighContrast,
+      toggleTTS,
+      setTTSRate,
+      resetSettings,
+      speak,
+      stopSpeaking,
+    ],
+  );
+
+  return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>;
 }
 
 export function useAccessibility() {
   const ctx = useContext(AccessibilityContext);
   if (!ctx) {
-    throw new Error("useAccessibility must be used within AccessibilityProvider");
+    throw new Error("useAccessibility precisa estar dentro de AccessibilityProvider");
   }
   return ctx;
 }

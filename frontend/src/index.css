@@ -1,21 +1,66 @@
 @import "tailwindcss";
+@import "./design-system/tokens/tokens.css";
 
-@theme {
-  --color-codecam: #6C5CE7;
-  --color-codecam-light: #8B5CF6;
-  --color-background: #19191d;
-  --color-surface: #1f1f26;
-  --color-surface-2: #2a2a35;
-  --color-border: #303036;
-  --color-text-muted: #8b8b92;
-  --color-success: #10b981;
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
+/**
+ * `@theme inline` faz o Tailwind gerar utilitários que apontam direto para a
+ * variável, em vez de copiar seu valor. Sem `inline`, `bg-surface` congelaria a
+ * cor do tema claro no CSS e a troca de tema em runtime não teria efeito.
+ */
+@theme inline {
+  --color-bg: var(--ds-bg);
+  --color-surface: var(--ds-surface);
+  --color-surface-raised: var(--ds-surface-raised);
+  --color-surface-sunken: var(--ds-surface-sunken);
+  --color-border: var(--ds-border);
+  --color-border-strong: var(--ds-border-strong);
 
-  --font-family-dyslexic: "OpenDyslexic", sans-serif;
+  --color-text: var(--ds-text);
+  --color-text-muted: var(--ds-text-muted);
+  --color-text-subtle: var(--ds-text-subtle);
+
+  --color-accent: var(--ds-accent);
+  --color-accent-hover: var(--ds-accent-hover);
+  --color-accent-contrast: var(--ds-accent-contrast);
+  --color-accent-subtle: var(--ds-accent-subtle);
+
+  --color-success: var(--ds-success);
+  --color-success-subtle: var(--ds-success-subtle);
+  --color-warning: var(--ds-warning);
+  --color-warning-subtle: var(--ds-warning-subtle);
+  --color-danger: var(--ds-danger);
+  --color-danger-subtle: var(--ds-danger-subtle);
+
+  --text-2xs: var(--ds-text-2xs);
+  --text-xs: var(--ds-text-xs);
+  --text-sm: var(--ds-text-sm);
+  --text-base: var(--ds-text-base);
+  --text-lg: var(--ds-text-lg);
+  --text-xl: var(--ds-text-xl);
+  --text-2xl: var(--ds-text-2xl);
+  --text-3xl: var(--ds-text-3xl);
+  --text-4xl: var(--ds-text-4xl);
+
+  --radius-sm: var(--ds-radius-sm);
+  --radius-md: var(--ds-radius-md);
+  --radius-lg: var(--ds-radius-lg);
+  --radius-xl: var(--ds-radius-xl);
+  --radius-2xl: var(--ds-radius-2xl);
+
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-accent: var(--ds-shadow-accent);
+
+  --font-sans: var(--ds-font-sans);
+  --font-mono: var(--ds-font-mono);
+
+  --ease-enter: var(--ds-ease-enter);
+  --ease-exit: var(--ds-ease-exit);
+  --ease-spring: var(--ds-ease-spring);
 }
 
-/* ─── OpenDyslexic font face ─────────────────────────────────────────── */
+/* ─── OpenDyslexic ─────────────────────────────────────────────────────────── */
+
 @font-face {
   font-family: "OpenDyslexic";
   src: url("https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf")
@@ -34,180 +79,316 @@
   font-display: swap;
 }
 
-/* ─── Base global styles ─────────────────────────────────────────────── */
-* {
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
-  font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  /* Impede que o navegador role a página por baixo de uma modal aberta. */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
   margin: 0;
-  padding: 0;
-  background-color: var(--color-background);
-  color: #ffffff;
-  font-family: system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
   min-height: 100dvh;
+  background-color: var(--ds-bg);
+  color: var(--ds-text);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-base);
+  line-height: var(--ds-leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* A troca de tema é uma transição, não um corte seco. */
+  transition:
+    background-color var(--ds-duration-normal) var(--ds-ease-enter),
+    color var(--ds-duration-normal) var(--ds-ease-enter);
 }
 
-/* ─── Focus visible ──────────────────────────────────────────────────── */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  font-weight: 650;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Alvos de toque de 44px em qualquer controle interativo. WCAG 2.2 (2.5.8). */
+button,
+[role="button"],
+a[href],
+input[type="checkbox"],
+input[type="radio"] {
+  touch-action: manipulation;
+}
+
+/* ─── Foco visível ─────────────────────────────────────────────────────────── */
+/* Duas camadas: um anel da cor de acento e um contorno da cor do fundo por
+   baixo, para que o foco continue visível sobre qualquer superfície — inclusive
+   sobre o próprio acento. */
+
 :focus-visible {
-  outline: 3px solid var(--color-codecam);
+  outline: 2px solid var(--ds-accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
 }
 
-/* ─── Font size scale ────────────────────────────────────────────────── */
-:root {
-  --font-scale: 1;
-  --text-xs:   calc(0.75rem  * var(--font-scale));
-  --text-sm:   calc(0.875rem * var(--font-scale));
-  --text-base: calc(1rem     * var(--font-scale));
-  --text-lg:   calc(1.125rem * var(--font-scale));
-  --text-xl:   calc(1.25rem  * var(--font-scale));
-  --text-2xl:  calc(1.5rem   * var(--font-scale));
-  --text-3xl:  calc(1.875rem * var(--font-scale));
+:root[data-contrast="high"] :focus-visible {
+  outline-width: 3px;
+  outline-offset: 3px;
 }
 
-html[data-font-size="sm"] { --font-scale: 0.875; }
-html[data-font-size="md"] { --font-scale: 1;     }
-html[data-font-size="lg"] { --font-scale: 1.125; }
-html[data-font-size="xl"] { --font-scale: 1.25;  }
-
-/* Apply to all text elements */
-html {
-  font-size: var(--text-base);
+/* Evita foco visível ao clicar, mantendo-o na navegação por teclado. */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
-p, span, div, li, td, th, label, input, textarea, select, button {
-  font-size: var(--text-base);
+/* ─── Modo OpenDyslexic ────────────────────────────────────────────────────── */
+/* O seletor universal com !important é intencional: a fonte precisa vencer
+   qualquer utilitário do Tailwind aplicado em componente. */
+
+:root[data-dyslexic="true"],
+:root[data-dyslexic="true"] * {
+  font-family: var(--ds-font-dyslexic) !important;
+  letter-spacing: 0.04em;
+  word-spacing: 0.12em;
+  line-height: var(--ds-leading-relaxed);
 }
 
-h1 { font-size: var(--text-3xl); }
-h2 { font-size: var(--text-2xl); }
-h3 { font-size: var(--text-xl); }
-h4 { font-size: var(--text-lg); }
+/* ─── Alto contraste: contornos ────────────────────────────────────────────── */
 
-/* ─── OpenDyslexic mode ──────────────────────────────────────────────── */
-html.dyslexic,
-html.dyslexic * {
-  font-family: "OpenDyslexic", sans-serif !important;
-  letter-spacing: 0.05em;
-  word-spacing: 0.1em;
-  line-height: 1.8;
+:root[data-contrast="high"] button,
+:root[data-contrast="high"] [role="button"],
+:root[data-contrast="high"] a[href],
+:root[data-contrast="high"] input,
+:root[data-contrast="high"] textarea,
+:root[data-contrast="high"] select {
+  border: 2px solid var(--ds-border-strong);
 }
 
-/* ─── High contrast mode ─────────────────────────────────────────────── */
-html.high-contrast {
-  --color-background: #000000;
-  --color-surface: #111111;
-  --color-surface-2: #1a1a1a;
-  --color-border: #ffffff;
-  --color-text-muted: #cccccc;
-  --color-codecam: #ffff00;
-  --color-codecam-light: #ffff00;
+/* ─── Barra de rolagem ─────────────────────────────────────────────────────── */
+
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ds-border-strong) transparent;
+  }
 }
 
-html.high-contrast body {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-html.high-contrast button,
-html.high-contrast a {
-  border: 2px solid #ffffff;
-}
-
-html.high-contrast button:focus-visible,
-html.high-contrast a:focus-visible,
-html.high-contrast [tabindex]:focus-visible {
-  outline: 3px solid #ffff00;
-  outline-offset: 2px;
-}
-
-/* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-background);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 2px;
+  background: var(--ds-border-strong);
+  border-radius: var(--ds-radius-full);
 }
 
-/* ─── Animations ─────────────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ─── Utilitário para leitores de tela ─────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* Link de pular navegação: invisível até receber foco. */
+.skip-link:focus-visible {
+  position: fixed;
+  top: var(--ds-space-4);
+  left: var(--ds-space-4);
+  z-index: var(--ds-z-toast);
+  width: auto;
+  height: auto;
+  padding: var(--ds-space-3) var(--ds-space-4);
+  clip-path: none;
+  background: var(--ds-accent);
+  color: var(--ds-accent-contrast);
+  border-radius: var(--ds-radius-md);
+  font-weight: 600;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+/* ─── Animações ────────────────────────────────────────────────────────────── */
 
-@keyframes ping {
-  75%, 100% {
-    transform: scale(2);
+@keyframes ds-fade-in {
+  from {
     opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ds-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ds-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes ds-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ds-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ds-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes ds-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
   }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease forwards;
+  animation: ds-fade-in var(--ds-duration-normal) var(--ds-ease-enter) forwards;
+}
+
+.animate-rise-in {
+  animation: ds-rise-in var(--ds-duration-normal) var(--ds-ease-enter) forwards;
+}
+
+.animate-slide-up {
+  animation: ds-slide-up var(--ds-duration-normal) var(--ds-ease-enter) forwards;
+}
+
+.animate-scale-in {
+  animation: ds-scale-in var(--ds-duration-fast) var(--ds-ease-spring) forwards;
 }
 
 .animate-spin {
-  animation: spin 1s linear infinite;
+  animation: ds-spin 900ms linear infinite;
 }
 
 .animate-pulse {
-  animation: pulse 2s ease-in-out infinite;
+  animation: ds-pulse 2s ease-in-out infinite;
 }
 
-.animate-ping {
-  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+/* Movimento reduzido: os tokens já zeram a duração, mas animações infinitas
+   precisam ser interrompidas explicitamente. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin,
+  .animate-pulse {
+    animation: none;
+  }
 }
 
-/* ─── Flashcard flip ─────────────────────────────────────────────────── */
-.flashcard-container {
-  perspective: 1000px;
+/* ─── Virada do flashcard ──────────────────────────────────────────────────── */
+
+.flashcard-scene {
+  perspective: 1400px;
 }
 
 .flashcard-inner {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 0.5s;
   transform-style: preserve-3d;
+  transition: transform var(--ds-duration-slow) var(--ds-ease-enter);
 }
 
-.flashcard-inner.flipped {
+.flashcard-inner[data-flipped="true"] {
   transform: rotateY(180deg);
 }
 
-.flashcard-front,
-.flashcard-back {
+.flashcard-face {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
-.flashcard-back {
+.flashcard-face[data-face="back"] {
   transform: rotateY(180deg);
+}
+
+/* Sem a rotação 3D, as faces precisam ser trocadas por visibilidade. */
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-inner[data-flipped="true"] {
+    transform: none;
+  }
+  .flashcard-face[data-face="back"] {
+    transform: none;
+    visibility: hidden;
+  }
+  .flashcard-inner[data-flipped="true"] .flashcard-face[data-face="front"] {
+    visibility: hidden;
+  }
+  .flashcard-inner[data-flipped="true"] .flashcard-face[data-face="back"] {
+    visibility: visible;
+  }
 }
