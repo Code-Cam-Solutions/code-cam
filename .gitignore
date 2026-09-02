@@ -32,5 +32,8 @@ Thumbs.db
 coverage/
 .vitest/
 
+# Dumps de banco — contêm dados de usuários reais
+.backups/
+
 # PWA — artefatos gerados no build
 frontend/dev-dist/

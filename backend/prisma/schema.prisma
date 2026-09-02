@@ -1,4 +1,17 @@
-// This is your Prisma schema file
+// CodeCam — modelo de dados
+//
+// Decisões estruturais desta versão:
+//
+// 1. Flashcards deixam de ser uma coluna Json dentro de Content e viram tabela
+//    própria. Sem isso não há como guardar o estado de repetição espaçada por
+//    cartão, nem consultar "o que vence hoje" sem carregar todo o conteúdo.
+//
+// 2. `topics` deixa de ser Json e vira text[] nativo do Postgres, o que
+//    permite filtrar por tópico com índice em vez de varrer JSON.
+//
+// 3. Cada revisão é gravada como um evento imutável (FlashcardReview). O estado
+//    atual do cartão é derivável do histórico, e as estatísticas de estudo
+//    deixam de depender de contadores que podem sair de sincronia.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,43 +22,158 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Usuário ────────────────────────────────────────────────────────────────
+
 model User {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  folders   Folder[]
-  contents  Content[]
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  folders       Folder[]
+  contents      Content[]
+  flashcards    Flashcard[]
+  studySessions StudySession[]
+  reviews       FlashcardReview[]
+
+  @@map("users")
 }
+
+// ─── Organização ────────────────────────────────────────────────────────────
 
 model Folder {
-  id        String    @id @default(uuid())
-  name      String
-  color     String    @default("#6C5CE7")
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  name   String
+  color  String @default("#6C5CE7")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   contents  Content[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("folders")
 }
 
-model Content {
-  id         String   @id @default(uuid())
-  title      String
-  summary    String   @db.Text
-  topics     Json
-  flashcards Json
-  rawText    String   @db.Text
-  imageUrl   String?
-  folderId   String?
-  folder     Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+// ─── Conteúdo capturado ─────────────────────────────────────────────────────
 
-  @@index([userId])
+model Content {
+  id       String   @id @default(uuid())
+  title    String
+  summary  String   @db.Text
+  topics   String[] @default([])
+  rawText  String   @db.Text
+  imageUrl String?
+
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  flashcards Flashcard[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Coluna gerada mantida pelo Postgres e indexada com GIN; criada na migração,
+  // não pelo Prisma. Declarada aqui apenas para o schema refletir a realidade.
+  searchVector Unsupported("tsvector")?
+
+  @@index([userId, createdAt(sort: Desc)])
   @@index([folderId])
+  @@map("contents")
+}
+
+// ─── Repetição espaçada ─────────────────────────────────────────────────────
+
+/// Cartão de estudo com o estado do algoritmo SM-2 embutido.
+model Flashcard {
+  id       String @id @default(uuid())
+  question String @db.Text
+  answer   String @db.Text
+  /// Preserva a ordem em que a IA gerou os cartões.
+  position Int    @default(0)
+
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  /// Desnormalizado a partir de Content para que a fila de revisão seja uma
+  /// consulta indexada por (userId, dueAt), sem join com contents.
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Estado SM-2 ─────────────────────────────────────────────────────────────
+  /// Fator de facilidade. Começa em 2.5 e nunca cai abaixo de 1.3.
+  easeFactor   Float     @default(2.5)
+  /// Intervalo atual até a próxima revisão, em dias.
+  intervalDays Int       @default(0)
+  /// Acertos consecutivos. Volta a zero a cada erro.
+  repetitions  Int       @default(0)
+  /// Quantas vezes o cartão já foi esquecido depois de aprendido.
+  lapses       Int       @default(0)
+  dueAt        DateTime  @default(now())
+  lastReviewedAt DateTime?
+
+  reviews FlashcardReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contentId, position])
+  @@index([userId, dueAt])
+  @@map("flashcards")
+}
+
+/// Como o usuário avaliou o próprio desempenho em um cartão.
+/// Espelha a escala do SM-2 simplificada, no mesmo formato usado pelo Anki.
+enum ReviewRating {
+  AGAIN // errou — reinicia o ciclo
+  HARD // lembrou com dificuldade
+  GOOD // lembrou corretamente
+  EASY // lembrou sem esforço
+
+  @@map("review_rating")
+}
+
+/// Evento imutável: uma avaliação de um cartão em um instante.
+/// Guarda o estado resultante para permitir reconstruir a curva de aprendizado
+/// sem recalcular todo o histórico.
+model FlashcardReview {
+  id String @id @default(uuid())
+
+  flashcardId String
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?
+  session     StudySession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  rating ReviewRating
+
+  /// Estado do cartão logo após esta revisão.
+  intervalDays Int
+  easeFactor   Float
+
+  reviewedAt DateTime @default(now())
+
+  @@index([userId, reviewedAt(sort: Desc)])
+  @@index([flashcardId, reviewedAt(sort: Desc)])
+  @@index([sessionId])
+  @@map("flashcard_reviews")
+}
+
+/// Uma sessão de estudo. `endedAt` nulo significa sessão ainda aberta.
+model StudySession {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  reviews FlashcardReview[]
+
+  @@index([userId, startedAt(sort: Desc)])
+  @@map("study_sessions")
 }
