@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo-codecam.svg" />
+    <!-- O iOS ignora os ícones do manifesto e usa este; sem ele, quem adiciona
+         o app à tela de início recebe uma miniatura da página. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!--
       Sem `maximum-scale` nem `user-scalable=no`: bloquear o zoom por pinça
@@ -23,6 +26,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CodeCam" />
     <meta property="og:title" content="CodeCam" />
     <meta property="og:description" content="Escaneie, aprenda, evolua." />
     <meta property="og:type" content="website" />

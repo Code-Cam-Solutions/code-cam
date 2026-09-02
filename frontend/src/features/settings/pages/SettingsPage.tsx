@@ -1,8 +1,20 @@
-import { BookOpen, Contrast, Info, Palette, RotateCcw, Type, Volume2 } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  Contrast,
+  Download,
+  Info,
+  Palette,
+  RotateCcw,
+  Share,
+  Type,
+  Volume2,
+} from "lucide-react";
 import type { FontSize } from "@/shared/context/AccessibilityContext";
 import { useAccessibility } from "@/shared/context/AccessibilityContext";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
+import { useInstallPrompt } from "@/shared/hooks/useInstallPrompt";
 import { Button, Card, Switch, ThemeToggle } from "@/design-system";
 
 const FONT_SIZES: { value: FontSize; label: string; sample: string }[] = [
@@ -55,6 +67,8 @@ export function SettingsPage() {
     resetSettings,
     speak,
   } = useAccessibility();
+
+  const { canInstall, installed, promptInstall } = useInstallPrompt();
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
@@ -220,6 +234,41 @@ export function SettingsPage() {
                 </Button>
               </div>
             )}
+          </Card>
+
+          {/* Instalação */}
+          <Card padding="lg">
+            <SectionHeading
+              icon={Download}
+              id="install-heading"
+              title="Instalar o CodeCam"
+              description="Abre direto da tela de início, sem barra de endereços, e funciona com o material já baixado mesmo sem internet."
+            />
+
+            <div className="mt-4">
+              {installed ? (
+                <p className="flex items-center gap-2 rounded-xl bg-success-subtle px-4 py-3 text-sm text-success">
+                  <Check size={17} aria-hidden="true" />O app já está instalado neste aparelho.
+                </p>
+              ) : canInstall ? (
+                <Button
+                  fullWidth
+                  icon={<Download size={18} />}
+                  onClick={() => void promptInstall()}
+                >
+                  Instalar aplicativo
+                </Button>
+              ) : (
+                /* Sem `beforeinstallprompt` não há botão que funcione — é o
+                   caso do iPhone, onde a instalação é manual. Explicar o
+                   caminho vale mais do que um botão inerte. */
+                <p className="flex items-start gap-2 rounded-xl bg-surface-sunken px-4 py-3 text-sm text-text-muted">
+                  <Share size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  No iPhone, toque em Compartilhar na barra do Safari e escolha “Adicionar à Tela de
+                  Início”.
+                </p>
+              )}
+            </div>
           </Card>
 
           {/* Aviso */}
