@@ -28,14 +28,15 @@
     "lint-staged": "^15.3.0",
     "prettier": "^3.4.2"
   },
+  "//lint-staged": "O ESLint 9 resolve eslint.config.js pelo cwd. Delegar para um script de cada app garante o cwd certo — rodar o binário direto da raiz não encontra config nenhuma.",
   "lint-staged": {
     "backend/**/*.ts": [
       "prettier --write",
-      "eslint --fix --no-warn-ignored"
+      "npm --prefix backend run lint:staged --"
     ],
     "frontend/**/*.{ts,tsx}": [
       "prettier --write",
-      "eslint --fix --no-warn-ignored"
+      "npm --prefix frontend run lint:staged --"
     ],
     "**/*.{json,md,yml,yaml,css}": [
       "prettier --write"
