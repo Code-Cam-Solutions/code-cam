@@ -1,21 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { scanImage } from "../services/api";
 import { useRouteState } from "../types/navigation";
+import { Card, Progress, cn } from "../design-system";
 
 const STEPS = [
-  "Preparando imagem...",
-  "Analisando com IA...",
-  "Extraindo conteúdo...",
-  "Gerando flashcards...",
+  "Preparando imagem",
+  "Analisando com IA",
+  "Extraindo conteúdo",
+  "Gerando flashcards",
   "Quase pronto!",
-];
+] as const;
+
+/** A barra desacelera ao se aproximar deste valor e nunca o ultrapassa. */
+const CEILING = 96;
+const TICK_MS = 140;
 
 export function ProcessingPage() {
   const navigate = useNavigate();
   const { imageBlob } = useRouteState<"/processing">();
   const hasFired = useRef(false);
+  const [progress, setProgress] = useState(6);
 
   useEffect(() => {
     // Guard: if accessed directly without a blob, send back to camera
@@ -42,74 +48,108 @@ export function ProcessingPage() {
     void process(imageBlob);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /*
+   * A duração real da análise é desconhecida, então o avanço é assintótico:
+   * cada tique cobre uma fração do que ainda falta. A barra anda rápido no
+   * começo — quando a espera ainda parece longa — e vai freando, sem nunca
+   * encostar no fim antes de a resposta chegar e a rota trocar.
+   */
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setProgress((current) =>
+        Math.min(CEILING, current + Math.max(0.3, (CEILING - current) * 0.03)),
+      );
+    }, TICK_MS);
+
+    return () => {
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const stepIndex = Math.min(
+    STEPS.length - 1,
+    Math.floor((progress / CEILING) * (STEPS.length - 0.001)),
+  );
+  const currentStep = STEPS[stepIndex] ?? STEPS[0];
+
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: "var(--color-background)" }}
+      className="flex min-h-dvh flex-col items-center justify-center bg-bg px-4 py-10"
       role="status"
       aria-live="polite"
       aria-label="Processando imagem"
     >
-      <div className="text-center animate-fade-in w-full max-w-xs">
-        {/* Animated icon */}
-        <div
-          className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 relative"
-          style={{ backgroundColor: "var(--color-codecam)" + "15" }}
-          aria-hidden="true"
-        >
-          <div
-            className="absolute inset-0 rounded-full animate-ping"
-            style={{ backgroundColor: "var(--color-codecam)" + "20" }}
-          />
-          <Sparkles size={40} style={{ color: "var(--color-codecam)" }} className="relative z-10" />
+      <div className="w-full max-w-sm animate-fade-in">
+        {/* Selo animado */}
+        <div className="relative mx-auto grid size-28 place-items-center" aria-hidden="true">
+          <span className="absolute inset-0 animate-pulse rounded-full bg-accent-subtle" />
+          <span className="absolute inset-1.5 animate-spin rounded-full border-2 border-border border-t-accent" />
+          <Sparkles size={34} className="relative text-accent" strokeWidth={1.8} />
         </div>
 
-        {/* Spinner */}
-        <div
-          className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-6"
-          style={{ borderColor: "var(--color-codecam)" }}
-          aria-hidden="true"
-        />
-
-        <h1 className="font-bold text-white mb-3" style={{ fontSize: "var(--text-2xl)" }}>
-          Analisando...
-        </h1>
-
-        {/* Animated steps */}
-        <div className="flex flex-col gap-2 mt-6" aria-hidden="true">
-          {STEPS.map((step, i) => (
-            <StepItem key={step} text={step} delay={i * 1200} />
-          ))}
-        </div>
-
-        <p
-          className="mt-8"
-          style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}
-        >
-          Isso pode levar alguns segundos
+        <h1 className="mt-8 text-center text-2xl font-bold text-text">Analisando…</h1>
+        <p className="mt-2 text-center text-sm text-text-muted">
+          A IA está lendo seu material e organizando o conteúdo.
         </p>
-      </div>
-    </div>
-  );
-}
 
-function StepItem({ text, delay }: { text: string; delay: number }) {
-  return (
-    <div
-      className="flex items-center gap-2 px-4 py-2 rounded-xl opacity-0"
-      style={{
-        backgroundColor: "var(--color-surface)",
-        animation: `fadeIn 0.4s ease forwards`,
-        animationDelay: `${delay}ms`,
-      }}
-    >
-      <div
-        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ backgroundColor: "var(--color-codecam)" }}
-      />
-      <span className="text-white" style={{ fontSize: "var(--text-sm)" }}>
-        {text}
-      </span>
+        {/*
+         * A barra e a lista repetem, em forma visual, o que o texto oculto
+         * abaixo anuncia. Deixá-las expostas ao leitor de tela dentro de uma
+         * região `live` faria o progresso ser lido a cada tique.
+         */}
+        <div className="mt-8" aria-hidden="true">
+          <Progress value={progress} label={currentStep} />
+
+          <Card elevation="raised" padding="md" className="mt-4">
+            <ol className="flex flex-col gap-1">
+              {STEPS.map((step, index) => {
+                const done = index < stepIndex;
+                const current = index === stepIndex;
+
+                return (
+                  <li
+                    key={step}
+                    className={cn(
+                      "flex min-h-[2rem] items-center gap-3 rounded-lg px-2 transition-colors duration-200",
+                      current && "bg-accent-subtle",
+                    )}
+                  >
+                    <span className="grid size-5 shrink-0 place-items-center">
+                      {done ? (
+                        <Check size={16} className="text-success" strokeWidth={2.5} />
+                      ) : (
+                        <span
+                          className={cn(
+                            "rounded-full transition-all duration-200",
+                            current ? "size-2.5 animate-pulse bg-accent" : "size-1.5 bg-border",
+                          )}
+                        />
+                      )}
+                    </span>
+
+                    <span
+                      className={cn(
+                        "text-sm transition-colors duration-200",
+                        current && "font-semibold text-text",
+                        done && "text-text-muted",
+                        !current && !done && "text-text-subtle",
+                      )}
+                    >
+                      {step}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </Card>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-text-subtle">Isso pode levar alguns segundos</p>
+      </div>
+
+      <p className="sr-only">
+        Etapa {stepIndex + 1} de {STEPS.length}: {currentStep}
+      </p>
     </div>
   );
 }

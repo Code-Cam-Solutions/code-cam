@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { RotateCcw, ChevronRight } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  Dumbbell,
+  Layers,
+  Minus,
+  RotateCcw,
+  ThumbsUp,
+  Trophy,
+  X,
+} from "lucide-react";
+import { Badge, Button, EmptyState, Progress, cn } from "../design-system";
 import { Navbar } from "../components/Navbar";
 import { TTSButton } from "../components/TTSButton";
-import { Button } from "../components/Button";
 import type { Flashcard } from "../services/api";
 import { useRouteState } from "../types/navigation";
 
@@ -12,6 +22,71 @@ type Score = "correct" | "almost" | "wrong";
 interface FlashcardResult {
   card: Flashcard;
   score: Score;
+}
+
+/**
+ * As três autoavaliações, em uma tabela só.
+ *
+ * Botão da sessão e número do resumo compartilham o mesmo tom porque são a
+ * mesma coisa vista em dois momentos — o ícone acompanha a cor para que a
+ * distinção não dependa de enxergá-la. WCAG 1.4.1.
+ */
+const SCORES = [
+  {
+    score: "correct",
+    label: "Acertei",
+    ariaLabel: "Acertei este flashcard",
+    Icon: Check,
+    surface: "border-success/30 bg-success-subtle text-success hover:border-success/60",
+  },
+  {
+    score: "almost",
+    label: "Quase",
+    ariaLabel: "Quase acertei este flashcard",
+    Icon: Minus,
+    surface: "border-warning/30 bg-warning-subtle text-warning hover:border-warning/60",
+  },
+  {
+    score: "wrong",
+    label: "Errei",
+    ariaLabel: "Errei este flashcard",
+    Icon: X,
+    surface: "border-danger/30 bg-danger-subtle text-danger hover:border-danger/60",
+  },
+] as const;
+
+const GRADES = {
+  excellent: {
+    Icon: Trophy,
+    text: "Excelente!",
+    tone: "text-success",
+    halo: "bg-success-subtle text-success",
+  },
+  good: {
+    Icon: ThumbsUp,
+    text: "Bom trabalho!",
+    tone: "text-accent",
+    halo: "bg-accent-subtle text-accent",
+  },
+  fair: {
+    Icon: BookOpen,
+    text: "Continue praticando!",
+    tone: "text-warning",
+    halo: "bg-warning-subtle text-warning",
+  },
+  poor: {
+    Icon: Dumbbell,
+    text: "Não desista, tente novamente!",
+    tone: "text-danger",
+    halo: "bg-danger-subtle text-danger",
+  },
+} as const;
+
+function getGrade(percent: number) {
+  if (percent >= 80) return GRADES.excellent;
+  if (percent >= 60) return GRADES.good;
+  if (percent >= 40) return GRADES.fair;
+  return GRADES.poor;
 }
 
 export function FlashcardsPage() {
@@ -28,12 +103,17 @@ export function FlashcardsPage() {
 
   if (total === 0 || !current) {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
-        <p className="text-white mb-4">Nenhum flashcard disponível.</p>
-        <Button onClick={() => navigate(-1)}>Voltar</Button>
+      <div className="flex min-h-dvh flex-col bg-bg">
+        <Navbar title="Flashcards" showBack />
+        <main id="main-content" className="flex flex-1 items-center justify-center px-4">
+          <EmptyState
+            className="animate-rise-in"
+            icon={<Layers size={26} />}
+            title="Nenhum flashcard disponível."
+            description="Escaneie um material ou abra um conteúdo salvo para gerar perguntas de revisão."
+            action={<Button onClick={() => void navigate(-1)}>Voltar</Button>}
+          />
+        </main>
       </div>
     );
   }
@@ -71,95 +151,78 @@ export function FlashcardsPage() {
 
   const scorePercent = Math.round((scoreCount.correct / total) * 100);
 
-  function getGrade() {
-    if (scorePercent >= 80)
-      return { emoji: "🎉", text: "Excelente!", color: "var(--color-success)" };
-    if (scorePercent >= 60)
-      return { emoji: "👍", text: "Bom trabalho!", color: "var(--color-codecam)" };
-    if (scorePercent >= 40)
-      return { emoji: "📚", text: "Continue praticando!", color: "var(--color-warning)" };
-    return { emoji: "💪", text: "Não desista, tente novamente!", color: "var(--color-error)" };
-  }
-
   if (finished) {
-    const grade = getGrade();
+    const grade = getGrade(scorePercent);
     const summaryText = `Você terminou a sessão. Acertou ${scoreCount.correct} de ${total} flashcards. ${grade.text}`;
 
     return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
+      <div className="flex min-h-dvh flex-col bg-bg">
         <Navbar title="Resultado" showBack />
+
         <main
-          className="flex-1 flex flex-col items-center justify-center px-6 pb-8"
           id="main-content"
+          className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-8"
         >
-          <div className="w-full max-w-sm text-center animate-fade-in">
-            <div className="text-6xl mb-4" aria-hidden="true">
-              {grade.emoji}
-            </div>
-
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <h1
-                className="font-bold text-white"
-                style={{ fontSize: "var(--text-3xl)", color: grade.color }}
+          <div className="animate-rise-in">
+            <div className="text-center">
+              <span
+                className={cn(
+                  "mx-auto grid size-20 animate-scale-in place-items-center rounded-full",
+                  grade.halo,
+                )}
+                aria-hidden="true"
               >
-                {scoreCount.correct}/{total}
+                <grade.Icon size={34} />
+              </span>
+
+              <h1 className="mt-6 text-xs font-semibold tracking-wide text-text-subtle uppercase">
+                Sessão concluída
               </h1>
-              <TTSButton text={summaryText} label="resultado final" />
-            </div>
 
-            <p
-              className="font-semibold mb-1"
-              style={{ color: grade.color, fontSize: "var(--text-xl)" }}
-            >
-              {grade.text}
-            </p>
-            <p
-              className="mb-8"
-              style={{ color: "var(--color-text-muted)", fontSize: "var(--text-base)" }}
-            >
-              {scorePercent}% de acerto
-            </p>
-
-            {/* Score breakdown */}
-            <div
-              className="flex justify-around p-4 rounded-2xl mb-8"
-              style={{ backgroundColor: "var(--color-surface)" }}
-              aria-label="Detalhamento da pontuação"
-            >
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: "var(--color-success)" }}>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <p className={cn("text-4xl font-bold tabular-nums", grade.tone)}>
                   {scoreCount.correct}
-                </div>
-                <div style={{ color: "var(--color-text-muted)", fontSize: "var(--text-xs)" }}>
-                  Acertei
-                </div>
+                  <span className="text-text-subtle">/{total}</span>
+                </p>
+                <TTSButton text={summaryText} label="resultado final" />
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: "var(--color-warning)" }}>
-                  {scoreCount.almost}
-                </div>
-                <div style={{ color: "var(--color-text-muted)", fontSize: "var(--text-xs)" }}>
-                  Quase
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: "var(--color-error)" }}>
-                  {scoreCount.wrong}
-                </div>
-                <div style={{ color: "var(--color-text-muted)", fontSize: "var(--text-xs)" }}>
-                  Errei
-                </div>
-              </div>
+
+              <p className={cn("mt-2 text-xl font-semibold", grade.tone)}>{grade.text}</p>
             </div>
 
-            <div className="flex flex-col gap-3">
+            {/* O percentual vira o rótulo da barra: um número só, dito uma vez,
+                em vez de repetido acima e ao lado dela. */}
+            <Progress
+              className="mt-7"
+              value={scoreCount.correct}
+              max={total}
+              label={`${scorePercent}% de acerto`}
+              tone="success"
+            />
+
+            <ul className="mt-6 grid grid-cols-3 gap-2" aria-label="Detalhamento da pontuação">
+              {SCORES.map(({ score, label, Icon, surface }) => (
+                <li
+                  key={score}
+                  className={cn(
+                    "flex flex-col items-center gap-1 rounded-xl border px-2 py-3",
+                    surface,
+                  )}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span className="text-2xl leading-none font-bold tabular-nums">
+                    {scoreCount[score]}
+                  </span>
+                  <span className="text-xs font-medium">{label}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8 flex flex-col gap-3">
               <Button
                 fullWidth
                 size="lg"
-                icon={<RotateCcw size={18} aria-hidden="true" />}
+                icon={<RotateCcw size={18} />}
                 onClick={handleRestart}
                 aria-label="Reiniciar sessão de flashcards"
               >
@@ -169,7 +232,7 @@ export function FlashcardsPage() {
                 variant="secondary"
                 fullWidth
                 size="lg"
-                onClick={() => navigate(-1)}
+                onClick={() => void navigate(-1)}
                 aria-label="Voltar ao resultado"
               >
                 Ver resultado
@@ -181,186 +244,105 @@ export function FlashcardsPage() {
     );
   }
 
-  // Active flashcard
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
+    <div className="flex min-h-dvh flex-col bg-bg">
       <Navbar title="Flashcards" showBack />
 
       <main
-        className="flex-1 flex flex-col px-4 pt-4 pb-8 max-w-lg mx-auto w-full"
         id="main-content"
+        className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-5 pb-8"
       >
-        {/* Progress */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span
-              style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}
-              aria-label={`Card ${currentIndex + 1} de ${total}`}
-            >
-              {currentIndex + 1} / {total}
-            </span>
-            <span style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-              {Math.round((currentIndex / total) * 100)}%
-            </span>
-          </div>
-          <div
-            className="w-full h-2 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--color-surface-2)" }}
-            role="progressbar"
-            aria-valuenow={currentIndex}
-            aria-valuemin={0}
-            aria-valuemax={total}
-            aria-label={`Progresso: ${currentIndex} de ${total} cards`}
+        <Progress value={currentIndex} max={total} label={`Card ${currentIndex + 1} de ${total}`} />
+
+        <div className="flex flex-1 flex-col justify-center py-6">
+          {/*
+            O cartão inteiro é o alvo de virada, e por isso é um `button` de
+            verdade: Enter e Espaço já funcionam, o foco já é visível e o estado
+            aberto/fechado é anunciado por `aria-pressed`. A face escondida sai
+            da árvore de acessibilidade — de outro modo o leitor de tela leria a
+            resposta enquanto a pessoa ainda olha a pergunta.
+          */}
+          <button
+            type="button"
+            onClick={handleFlip}
+            aria-pressed={flipped}
+            className="flashcard-scene block h-[clamp(15rem,44vh,21rem)] w-full rounded-2xl"
           >
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{
-                width: `${(currentIndex / total) * 100}%`,
-                backgroundColor: "var(--color-codecam)",
-              }}
+            <span className="sr-only">
+              {flipped ? "Voltar para a pergunta" : "Mostrar a resposta"}
+            </span>
+
+            <span className="flashcard-inner block" aria-live="polite">
+              <span
+                className={cn(
+                  "flashcard-face flex flex-col items-center justify-center gap-4 overflow-y-auto",
+                  "rounded-2xl border border-border bg-surface p-6 text-center shadow-sm",
+                )}
+                data-face="front"
+                aria-hidden={flipped}
+              >
+                <Badge tone="accent">Pergunta</Badge>
+                <span className="text-lg leading-relaxed font-medium text-text">
+                  {current.question}
+                </span>
+                <span className="text-xs text-text-muted" aria-hidden="true">
+                  Toque para ver a resposta
+                </span>
+              </span>
+
+              <span
+                className={cn(
+                  "flashcard-face flex flex-col items-center justify-center gap-4 overflow-y-auto",
+                  "rounded-2xl border border-accent/25 bg-accent-subtle p-6 text-center shadow-sm",
+                )}
+                data-face="back"
+                aria-hidden={!flipped}
+              >
+                {/* Selo sólido: sobre a face já tingida de acento, o selo
+                    esmaecido do padrão desapareceria no fundo. */}
+                <Badge tone="accent" className="border-accent bg-accent text-accent-contrast">
+                  Resposta
+                </Badge>
+                <span className="text-base leading-relaxed text-text">{current.answer}</span>
+                <span className="text-xs text-text-muted" aria-hidden="true">
+                  Toque para ver a pergunta
+                </span>
+              </span>
+            </span>
+          </button>
+
+          {/* A leitura em voz alta acompanha a face visível. Fora do botão de
+              virar, porque um botão não pode conter outro. */}
+          <div className="mt-4 flex justify-center">
+            <TTSButton
+              text={flipped ? current.answer : current.question}
+              label={flipped ? "resposta do flashcard" : "pergunta do flashcard"}
             />
           </div>
         </div>
 
-        {/* Flashcard */}
-        <div className="flex-1 flex flex-col justify-center mb-6">
-          <div className="flashcard-container w-full" style={{ height: "280px" }}>
-            <div className={`flashcard-inner ${flipped ? "flipped" : ""}`} aria-live="polite">
-              {/* Front - Question */}
-              <div
-                className="flashcard-front flex flex-col items-center justify-center p-6 rounded-2xl"
-                style={{ backgroundColor: "var(--color-surface)" }}
-              >
-                <div
-                  className="text-xs font-semibold uppercase tracking-wider mb-4 px-3 py-1 rounded-full"
-                  style={{
-                    color: "var(--color-codecam)",
-                    backgroundColor: "var(--color-codecam)" + "20",
-                    fontSize: "var(--text-xs)",
-                  }}
-                  aria-hidden="true"
-                >
-                  Pergunta
-                </div>
-                <p
-                  className="text-white text-center font-medium"
-                  style={{ fontSize: "var(--text-lg)", lineHeight: "1.6" }}
-                >
-                  {current.question}
-                </p>
-                <div className="mt-4">
-                  <TTSButton text={current.question} label="pergunta do flashcard" />
-                </div>
-              </div>
-
-              {/* Back - Answer */}
-              <div
-                className="flashcard-back flex flex-col items-center justify-center p-6 rounded-2xl"
-                style={{
-                  backgroundColor: "var(--color-codecam)" + "15",
-                  border: "1px solid var(--color-codecam)" + "40",
-                }}
-              >
-                <div
-                  className="text-xs font-semibold uppercase tracking-wider mb-4 px-3 py-1 rounded-full"
-                  style={{
-                    color: "var(--color-codecam-light)",
-                    backgroundColor: "var(--color-codecam)" + "20",
-                    fontSize: "var(--text-xs)",
-                  }}
-                  aria-hidden="true"
-                >
-                  Resposta
-                </div>
-                <p
-                  className="text-white text-center"
-                  style={{ fontSize: "var(--text-base)", lineHeight: "1.7" }}
-                >
-                  {current.answer}
-                </p>
-                <div className="mt-4">
-                  <TTSButton text={current.answer} label="resposta do flashcard" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Flip button */}
-          {!flipped ? (
-            <button
-              onClick={handleFlip}
-              className="mt-4 flex items-center justify-center gap-2 py-3 rounded-xl transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-              style={{
-                backgroundColor: "var(--color-surface)",
-                color: "var(--color-text-muted)",
-                fontSize: "var(--text-sm)",
-              }}
-              aria-label="Revelar resposta"
-            >
-              Toque para ver a resposta
-              <ChevronRight size={16} aria-hidden="true" />
-            </button>
-          ) : null}
-        </div>
-
-        {/* Self-assessment buttons */}
         {flipped && (
-          <div className="flex flex-col gap-3 animate-fade-in">
-            <p
-              className="text-center font-medium text-white mb-1"
-              style={{ fontSize: "var(--text-sm)" }}
-            >
-              Como você se saiu?
-            </p>
+          <div className="animate-rise-in">
+            <p className="mb-3 text-center text-sm font-medium text-text">Como você se saiu?</p>
+
             <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={() => handleScore("correct")}
-                className="flex flex-col items-center gap-1 py-4 px-2 rounded-xl font-semibold transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam hover:opacity-90"
-                style={{
-                  backgroundColor: "var(--color-success)" + "20",
-                  border: "1px solid var(--color-success)" + "50",
-                  color: "var(--color-success)",
-                  fontSize: "var(--text-sm)",
-                  minHeight: "64px",
-                }}
-                aria-label="Acertei este flashcard"
-              >
-                <span aria-hidden="true">✅</span>
-                <span>Acertei</span>
-              </button>
-              <button
-                onClick={() => handleScore("almost")}
-                className="flex flex-col items-center gap-1 py-4 px-2 rounded-xl font-semibold transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam hover:opacity-90"
-                style={{
-                  backgroundColor: "var(--color-warning)" + "20",
-                  border: "1px solid var(--color-warning)" + "50",
-                  color: "var(--color-warning)",
-                  fontSize: "var(--text-sm)",
-                  minHeight: "64px",
-                }}
-                aria-label="Quase acertei este flashcard"
-              >
-                <span aria-hidden="true">〰️</span>
-                <span>Quase</span>
-              </button>
-              <button
-                onClick={() => handleScore("wrong")}
-                className="flex flex-col items-center gap-1 py-4 px-2 rounded-xl font-semibold transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam hover:opacity-90"
-                style={{
-                  backgroundColor: "var(--color-error)" + "20",
-                  border: "1px solid var(--color-error)" + "50",
-                  color: "var(--color-error)",
-                  fontSize: "var(--text-sm)",
-                  minHeight: "64px",
-                }}
-                aria-label="Errei este flashcard"
-              >
-                <span aria-hidden="true">❌</span>
-                <span>Errei</span>
-              </button>
+              {SCORES.map(({ score, label, ariaLabel, Icon, surface }) => (
+                <button
+                  key={score}
+                  type="button"
+                  onClick={() => handleScore(score)}
+                  aria-label={ariaLabel}
+                  className={cn(
+                    "flex min-h-[4rem] flex-col items-center justify-center gap-1.5 rounded-xl border",
+                    "text-sm font-semibold transition-[border-color,transform] duration-150",
+                    "active:scale-95",
+                    surface,
+                  )}
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  <span>{label}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
