@@ -1,12 +1,19 @@
+import { ChevronLeft, LogOut, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { cn } from "../design-system";
 
 interface NavbarProps {
   title?: string;
   showBack?: boolean;
   backTo?: string;
 }
+
+/** Botão circular de 44px, o alvo de toque mínimo confortável em celular. */
+const ICON_BUTTON = cn(
+  "grid size-11 place-items-center rounded-full text-text-muted",
+  "transition-colors duration-150 hover:bg-surface-sunken hover:text-text",
+);
 
 export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
   const { user, logout } = useAuth();
@@ -18,7 +25,9 @@ export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
   }
 
   function handleBack() {
-    if (backTo) {
+    // As sobrecargas de `navigate` para destino e para delta são distintas, e
+    // uma união `string | -1` não satisfaz nenhuma das duas.
+    if (backTo !== undefined) {
       void navigate(backTo);
     } else {
       void navigate(-1);
@@ -27,69 +36,52 @@ export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
 
   return (
     <header
-      className="sticky top-0 z-40 flex items-center justify-between px-4 h-14"
-      style={{
-        backgroundColor: "var(--color-background)",
-        borderBottom: "1px solid var(--color-border)",
-      }}
       role="banner"
+      className={cn(
+        "sticky top-0 flex h-14 items-center justify-between gap-2 px-2",
+        "border-b border-border bg-bg/85 backdrop-blur-md",
+        // A barra encosta no topo da tela; em aparelhos com notch o conteúdo
+        // precisa descer para não ficar sob o recorte.
+        "pt-[env(safe-area-inset-top)]",
+      )}
+      style={{ zIndex: "var(--ds-z-nav)" }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-1">
         {showBack ? (
-          <button
-            onClick={handleBack}
-            aria-label="Voltar"
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
+          <button type="button" onClick={handleBack} aria-label="Voltar" className={ICON_BUTTON}>
+            <ChevronLeft size={22} aria-hidden="true" />
           </button>
         ) : (
           <Link
             to="/"
-            className="flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam rounded-lg"
-            aria-label="CodeCam - Página inicial"
+            aria-label="CodeCam — início"
+            className="ml-2 flex items-center gap-2 rounded-lg"
           >
-            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="w-6 h-6" />
-            <span className="font-bold text-lg" style={{ color: "var(--color-codecam)" }}>
-              CodeCam
-            </span>
+            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="size-6" />
+            <span className="text-lg font-bold text-accent">CodeCam</span>
           </Link>
         )}
-        {title && (
-          <h1 className="text-white font-semibold ml-1" style={{ fontSize: "var(--text-lg)" }}>
+
+        {title !== undefined && (
+          <h1
+            className={cn("truncate text-lg font-semibold text-text", showBack ? "ml-0" : "ml-2")}
+          >
             {title}
           </h1>
         )}
       </div>
 
-      <nav className="flex items-center gap-1" aria-label="Navegação principal">
-        <Link
-          to="/settings"
-          aria-label="Configurações de acessibilidade"
-          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-          style={{ color: "var(--color-text-muted)" }}
-        >
+      <nav className="flex shrink-0 items-center gap-0.5" aria-label="Ações da conta">
+        <Link to="/settings" aria-label="Aparência e acessibilidade" className={ICON_BUTTON}>
           <Settings size={20} aria-hidden="true" />
         </Link>
+
         {user && (
           <button
+            type="button"
             onClick={handleLogout}
             aria-label="Sair da conta"
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-codecam"
-            style={{ color: "var(--color-text-muted)" }}
+            className={ICON_BUTTON}
           >
             <LogOut size={20} aria-hidden="true" />
           </button>
