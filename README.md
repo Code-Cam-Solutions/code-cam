@@ -7,6 +7,7 @@ Plataforma web mobile-first de estudos com acessibilidade, IA e organização de
 O CodeCam permite que estudantes fotografem materiais de estudo (lousas, cadernos, livros) e recebam automaticamente resumos, tópicos principais e flashcards gerados por inteligência artificial. A acessibilidade é o núcleo da experiência, com suporte a fontes ajustáveis, OpenDyslexic, alto contraste e leitura em voz alta.
 
 **Stack:**
+
 - **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS v4
 - **Backend:** NestJS + Prisma + PostgreSQL
 - **IA:** Google Gemini 1.5 Flash
@@ -17,8 +18,38 @@ O CodeCam permite que estudantes fotografem materiais de estudo (lousas, caderno
 ## Pré-requisitos
 
 - Node.js 20+
-- PostgreSQL (local ou via Docker)
+- PostgreSQL 17
 - Conta no [Google AI Studio](https://aistudio.google.com/) para obter a chave do Gemini
+
+### Banco local (macOS)
+
+O desenvolvimento roda contra um Postgres na própria máquina — depender do
+banco de produção para programar significa que uma instância pausada derruba o
+trabalho de todo mundo.
+
+```bash
+brew install postgresql@17
+brew services start postgresql@17
+createdb codecam
+```
+
+A URL correspondente, em `backend/.env`:
+
+```env
+DATABASE_URL=postgresql://SEU_USUARIO@localhost:5432/codecam?schema=public
+```
+
+Em seguida, aplique o schema e popule com dados de demonstração:
+
+```bash
+cd backend
+npx prisma migrate deploy
+npm run prisma:seed
+```
+
+O seed cria o usuário **Demo**, com pastas, conteúdos e cartões em estados
+variados de revisão — o suficiente para o painel e a fila de estudo terem o que
+mostrar sem ninguém precisar estudar à mão antes.
 
 ---
 
@@ -103,19 +134,19 @@ O frontend estará disponível em `http://localhost:5173`.
 
 ### Backend (`backend/.env`)
 
-| Variável | Descrição | Obrigatório |
-|----------|-----------|-------------|
-| `DATABASE_URL` | URL de conexão com PostgreSQL | ✅ |
-| `JWT_SECRET` | Chave secreta para assinar tokens JWT | ✅ |
-| `GEMINI_API_KEY` | Chave de API do Google Gemini | ✅ |
-| `PORT` | Porta do servidor (padrão: 3000) | ❌ |
-| `FRONTEND_URL` | URL do frontend para CORS | ❌ |
+| Variável         | Descrição                             | Obrigatório |
+| ---------------- | ------------------------------------- | ----------- |
+| `DATABASE_URL`   | URL de conexão com PostgreSQL         | ✅          |
+| `JWT_SECRET`     | Chave secreta para assinar tokens JWT | ✅          |
+| `GEMINI_API_KEY` | Chave de API do Google Gemini         | ✅          |
+| `PORT`           | Porta do servidor (padrão: 3000)      | ❌          |
+| `FRONTEND_URL`   | URL do frontend para CORS             | ❌          |
 
 ### Frontend (`frontend/.env`)
 
-| Variável | Descrição | Obrigatório |
-|----------|-----------|-------------|
-| `VITE_API_URL` | URL base do backend | ✅ |
+| Variável       | Descrição           | Obrigatório |
+| -------------- | ------------------- | ----------- |
+| `VITE_API_URL` | URL base do backend | ✅          |
 
 ---
 
@@ -222,7 +253,7 @@ codecam/
 
 1. Acesse o CodeCam pelo QR Code (URL HTTPS)
 2. Digite seu nome ou apelido para entrar
-3. *(Opcional)* Configure acessibilidade em **Ajustes**
+3. _(Opcional)_ Configure acessibilidade em **Ajustes**
 4. Toque em **Escanear agora** na Home
 5. Permita o acesso à câmera e fotografe o material
 6. Aguarde a análise da IA
@@ -235,16 +266,16 @@ codecam/
 
 ## Funcionalidades de Acessibilidade
 
-| Recurso | Descrição |
-|---------|-----------|
-| Tamanho de fonte | 4 níveis: Pequena, Normal, Grande, Extra grande |
-| OpenDyslexic | Fonte especializada para dislexia |
-| Alto contraste | Cores de alto contraste para baixa visão |
-| Leitura em voz alta | Botão por elemento via Web Speech API |
-| Velocidade de TTS | Ajustável de 0.5x a 2x |
-| Foco visível | Outline em todos os elementos interativos |
-| ARIA labels | Todos os elementos com descrições acessíveis |
-| Tamanho mínimo | Botões com 48px de altura mínima |
+| Recurso             | Descrição                                       |
+| ------------------- | ----------------------------------------------- |
+| Tamanho de fonte    | 4 níveis: Pequena, Normal, Grande, Extra grande |
+| OpenDyslexic        | Fonte especializada para dislexia               |
+| Alto contraste      | Cores de alto contraste para baixa visão        |
+| Leitura em voz alta | Botão por elemento via Web Speech API           |
+| Velocidade de TTS   | Ajustável de 0.5x a 2x                          |
+| Foco visível        | Outline em todos os elementos interativos       |
+| ARIA labels         | Todos os elementos com descrições acessíveis    |
+| Tamanho mínimo      | Botões com 48px de altura mínima                |
 
 ---
 

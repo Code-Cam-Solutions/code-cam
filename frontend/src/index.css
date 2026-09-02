@@ -338,12 +338,34 @@ input[type="radio"] {
   animation: ds-pulse 2s ease-in-out infinite;
 }
 
+/* Clarão do obturador. Substitui o feedback tátil que a web não tem: sem ele,
+   em uma cena estática, nada na tela confirma que a foto foi tirada. */
+@keyframes ds-shutter-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-shutter-flash {
+  animation: ds-shutter-flash 320ms var(--ds-ease-exit) forwards;
+}
+
 /* Movimento reduzido: os tokens já zeram a duração, mas animações infinitas
    precisam ser interrompidas explicitamente. */
 @media (prefers-reduced-motion: reduce) {
   .animate-spin,
   .animate-pulse {
     animation: none;
+  }
+
+  /* O clarão é curto e não se repete, mas é uma mudança abrupta de luminância
+     na tela inteira — exatamente o que este modo pede para evitar. */
+  .animate-shutter-flash {
+    animation: none;
+    opacity: 0;
   }
 }
 

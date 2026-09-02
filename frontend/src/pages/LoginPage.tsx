@@ -47,12 +47,9 @@ export function LoginPage() {
       >
         <div className="w-full max-w-sm animate-rise-in">
           <div className="mb-9 flex flex-col items-center text-center">
-            <span
-              className="mb-5 grid size-24 place-items-center rounded-full bg-accent-subtle"
-              aria-hidden="true"
-            >
-              <img src="/logo-codecam.svg" alt="" className="size-16" />
-            </span>
+            {/* Sem disco de fundo: a marca já é um círculo, e envolvê-la em
+                outro só criava um segundo contorno concorrendo com o dela. */}
+            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="mb-5 size-20" />
 
             <h1 className="text-3xl font-bold text-accent">CodeCam</h1>
             <p className="mt-2 text-base text-text-muted">Escaneie, aprenda, evolua.</p>
