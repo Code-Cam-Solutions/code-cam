@@ -6,6 +6,7 @@ import { ContentsModule } from '@modules/contents/contents.module';
 import { FoldersModule } from '@modules/folders/folders.module';
 import { HealthController } from '@modules/health/health.controller';
 import { ScanModule } from '@modules/scan/scan.module';
+import { StatsModule } from '@modules/stats/stats.module';
 import { StudyModule } from '@modules/study/study.module';
 import { validateEnv } from '@config/env.validation';
 
@@ -32,6 +33,7 @@ import { validateEnv } from '@config/env.validation';
     FoldersModule,
     ContentsModule,
     StudyModule,
+    StatsModule,
   ],
   controllers: [HealthController],
 })
