@@ -13,6 +13,8 @@ export interface Env {
   JWT_SECRET: string;
   /** Ausente em desenvolvimento: sem ela o scan devolve dados de demonstração. */
   GEMINI_API_KEY?: string;
+  /** Modelo usado na análise das fotos. Configurável para sobreviver a aposentadorias. */
+  GEMINI_MODEL: string;
   PORT: number;
   /** Origens autorizadas a chamar a API, já separadas por vírgula. */
   FRONTEND_URL: string[];
@@ -23,6 +25,18 @@ export interface Env {
  * HMAC-SHA256 — um segredo menor não acrescenta entropia à assinatura.
  */
 const MIN_SECRET_LENGTH = 32;
+
+/**
+ * Modelo padrão da análise de imagem.
+ *
+ * Fica em variável de ambiente porque o Google aposenta modelos sem aviso no
+ * código: o `gemini-1.5-flash` que estava fixo aqui passou a responder 404
+ * ("is not found for API version v1beta") e derrubou toda captura de foto, com
+ * o app dizendo ao usuário para "tentar novamente" — conselho que nunca ia
+ * funcionar. Com a variável, trocar de modelo é editar o .env e reiniciar, sem
+ * esperar por um deploy.
+ */
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
 
 class EnvError extends Error {
   constructor(problems: string[]) {
@@ -93,6 +107,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     DATABASE_URL: databaseUrl,
     JWT_SECRET: jwtSecret,
     GEMINI_API_KEY: geminiApiKey || undefined,
+    GEMINI_MODEL: readString(raw.GEMINI_MODEL) || DEFAULT_GEMINI_MODEL,
     PORT: port,
     FRONTEND_URL: (readString(raw.FRONTEND_URL) || 'http://localhost:5173')
       .split(',')
