@@ -9,9 +9,21 @@ build/
 *.tsbuildinfo
 
 # Environment — nunca versionar segredos
+#
+# A regra é ampla de propósito. Antes só `.env`, `.env.local` e `.env.*.local`
+# eram ignorados, o que deixava `.env.production` passar direto: alguém criaria
+# o arquivo com a credencial do banco de produção e o commit sairia sem aviso.
+# Em repositório compartilhado, esquecer é questão de tempo. Agora ignora-se
+# tudo que começa com `.env` e abre-se exceção só para o modelo.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# Chaves e certificados, caso alguém os coloque aqui por engano.
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Logs
 logs
@@ -37,3 +49,6 @@ coverage/
 
 # PWA — artefatos gerados no build
 frontend/dev-dist/
+
+# Configuração local de ferramentas de IA (varia por pessoa).
+.claude/settings.local.json
