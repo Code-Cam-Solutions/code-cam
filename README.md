@@ -15,6 +15,14 @@ O CodeCam permite que estudantes fotografem materiais de estudo (lousas, caderno
 
 ---
 
+## Vai programar aqui?
+
+Leia o **[AGENTS.md](AGENTS.md)** antes do primeiro commit. Ele reúne as
+convenções do projeto — estrutura, comentários, acessibilidade, testes e o
+formato dos commits — e vale igual para pessoas e para agentes de IA.
+
+---
+
 ## Pré-requisitos
 
 - Node.js 20+
