@@ -46,6 +46,10 @@ export function SearchPage() {
       <Navbar title="Buscar" showBack backTo="/" />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-28">
+        {/* O campo de busca já é autoexplicativo na tela; o título serve a quem
+            navega por cabeçalhos. */}
+        <h1 className="sr-only">Buscar nos seus materiais</h1>
+
         <div className="relative">
           <Input
             ref={inputRef}

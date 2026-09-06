@@ -87,12 +87,19 @@ export function FormatSelectionPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
-      <Navbar title="O que deseja gerar?" showBack />
+      <Navbar showBack />
 
       <main
         id="main-content"
         className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(8.5rem+env(safe-area-inset-bottom))]"
       >
+        {/* A pergunta sai da barra e vira o título da página: é a decisão que
+            a tela inteira existe para tomar, e na barra ficava truncada. */}
+        <h1 className="mb-1 text-2xl font-bold text-text">O que deseja gerar?</h1>
+        <p className="mb-5 text-sm text-text-muted">
+          Cada formato serve a um jeito de estudar. Escolha quantos quiser.
+        </p>
+
         <div className="flex items-center gap-3">
           <img
             src={photo.url}

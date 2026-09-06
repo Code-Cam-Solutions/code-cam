@@ -143,7 +143,8 @@ export function FoldersPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
-      <Navbar title="Pastas" />
+      {/* Sem título na barra: o `h1` "Minhas pastas" está logo abaixo. */}
+      <Navbar />
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-28">

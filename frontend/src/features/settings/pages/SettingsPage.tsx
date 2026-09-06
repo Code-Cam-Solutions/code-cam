@@ -1,13 +1,17 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Check,
   Contrast,
   Download,
   Info,
+  LogOut,
   Palette,
   RotateCcw,
   Share,
   Type,
+  UserRound,
   Volume2,
 } from "lucide-react";
 import type { FontSize } from "@/shared/context/AccessibilityContext";
@@ -15,7 +19,8 @@ import { useAccessibility } from "@/shared/context/AccessibilityContext";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
 import { useInstallPrompt } from "@/shared/hooks/useInstallPrompt";
-import { Button, Card, Switch, ThemeToggle } from "@/design-system";
+import { useAuth } from "@/shared/context/AuthContext";
+import { Button, Card, Dialog, Switch, ThemeToggle } from "@/design-system";
 
 const FONT_SIZES: { value: FontSize; label: string; sample: string }[] = [
   { value: "sm", label: "Pequena", sample: "0.8rem" },
@@ -69,10 +74,20 @@ export function SettingsPage() {
   } = useAccessibility();
 
   const { canInstall, installed, promptInstall } = useInstallPrompt();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+
+  function handleLogout() {
+    logout();
+    void navigate("/login", { replace: true });
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
-      <Navbar title="Acessibilidade" />
+      {/* Sem título na barra: o `h1` da página, logo abaixo, já o diz por
+          inteiro — repeti-lo aqui era eco, não orientação. */}
+      <Navbar />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-28">
         <h1 className="mb-1 text-2xl font-bold text-text">Aparência e acessibilidade</h1>
@@ -281,7 +296,7 @@ export function SettingsPage() {
           </Card>
 
           <Button
-            variant="danger"
+            variant="secondary"
             size="lg"
             fullWidth
             icon={<RotateCcw size={18} />}
@@ -289,8 +304,64 @@ export function SettingsPage() {
           >
             Restaurar padrões
           </Button>
+
+          {/*
+            Conta e saída.
+            O sair era um ícone sem rótulo na barra superior de todas as telas —
+            visível demais para uma ação que encerra a sessão, e anônimo demais
+            para quem não decifra o pictograma. Aqui ele tem nome, diz de quem é
+            a sessão que será encerrada, e pede confirmação.
+          */}
+          {user && (
+            <Card padding="lg" className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <span
+                  className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-subtle text-accent"
+                  aria-hidden="true"
+                >
+                  <UserRound size={20} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-text">{user.name}</p>
+                  <p className="text-sm text-text-subtle">Sessão neste aparelho</p>
+                </div>
+              </div>
+
+              <Button
+                variant="danger"
+                size="lg"
+                fullWidth
+                icon={<LogOut size={18} />}
+                onClick={() => setConfirmingLogout(true)}
+              >
+                Sair da conta
+              </Button>
+            </Card>
+          )}
         </div>
       </main>
+
+      <Dialog
+        open={confirmingLogout}
+        onClose={() => setConfirmingLogout(false)}
+        title="Sair da conta?"
+        description="Seus materiais continuam salvos. Para voltar, basta digitar seu nome de novo."
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="danger"
+            size="lg"
+            fullWidth
+            icon={<LogOut size={18} />}
+            onClick={handleLogout}
+          >
+            Sair
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => setConfirmingLogout(false)}>
+            Continuar estudando
+          </Button>
+        </div>
+      </Dialog>
 
       <BottomNav />
     </div>
