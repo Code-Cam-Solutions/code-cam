@@ -6,9 +6,6 @@
  * mensagem em português — mora aqui, e não espalhado por cada chamada.
  */
 
-/** Porta em que o backend roda em desenvolvimento. */
-const DEV_API_PORT = 3000;
-
 /**
  * Onde a API está.
  *
@@ -25,8 +22,16 @@ function resolveBaseUrl(): string {
   const configured = import.meta.env.VITE_API_URL;
   if (configured) return configured.replace(/\/$/, "");
 
-  const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:${DEV_API_PORT}`;
+  /*
+   * Sem variável, a API é a própria origem sob `/api`, que o servidor de
+   * desenvolvimento encaminha para o backend.
+   *
+   * Antes daqui saía `http://<host>:3000`, deduzido da página. Funcionava
+   * enquanto o app era servido em http — mas a câmera exige https, e de uma
+   * página https uma chamada para http é bloqueada como conteúdo misto. Manter
+   * tudo na mesma origem resolve os dois, e ainda tira o CORS do caminho.
+   */
+  return "/api";
 }
 
 const BASE_URL = resolveBaseUrl();

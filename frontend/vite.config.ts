@@ -2,12 +2,27 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import path from "node:path";
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+
+    /*
+     * `basicSsl` existe por causa da câmera, não por segurança.
+     *
+     * `getUserMedia` só é exposto em contexto seguro. `localhost` é isento pela
+     * especificação, mas `http://10.0.0.160:5173` não é — e é assim que o app
+     * é aberto no celular, que é onde ele de fato se usa. Fora do contexto
+     * seguro `navigator.mediaDevices` nem existe: não é permissão negada, é a
+     * API inteira ausente, e escanear a lousa pelo celular fica impossível.
+     *
+     * O certificado é autoassinado, então o aparelho mostra um aviso na
+     * primeira visita. É o preço de ter câmera em rede local sem um domínio.
+     */
+    basicSsl(),
 
     /*
      * O CodeCam é aberto por QR Code, em celular, muitas vezes na rede da
@@ -114,6 +129,21 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+
+    /*
+     * A API passa por aqui em desenvolvimento, e isso resolve dois problemas de
+     * uma vez. Com o frontend em https, chamar `http://10.0.0.160:3000` direto
+     * seria conteúdo misto e o navegador bloquearia. Pelo proxy tudo fica na
+     * mesma origem — e, na mesma origem, não existe requisição entre origens:
+     * o CORS deixa de participar do desenvolvimento.
+     */
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
   },
 
   build: {
