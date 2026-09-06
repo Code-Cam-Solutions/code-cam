@@ -1,15 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  BookOpen,
-  Camera,
-  ChevronRight,
-  Flame,
-  FolderOpen,
-  RefreshCcw,
-  Search,
-  Sparkles,
-  Target,
-} from "lucide-react";
+import { Camera, ChevronRight, Flame, FolderOpen, RefreshCcw, Search, Target } from "lucide-react";
 import { getStatsOverview, type StatsOverview } from "@/api";
 import { useAuth } from "@/shared/context/AuthContext";
 import { useAsync } from "@/shared/hooks/useAsync";
@@ -144,34 +134,83 @@ export function HomePage() {
             Escanear material
           </h2>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Link to="/camera" className="group block rounded-xl">
-              <Card interactive padding="lg" className="h-full border-accent/25 bg-accent-subtle">
+          {/*
+            Fotografar é a razão de o app existir, e era um quadrado de metade
+            da largura dividindo a linha com "Minhas pastas" — dois cartões do
+            mesmo tamanho, nenhum principal. Aqui ele ocupa a largura inteira,
+            com os anéis da lente que a tela de entrada apresenta. Pastas e
+            busca recuam para a linha de baixo, que é onde ações secundárias
+            pertencem.
+          */}
+          <Link to="/camera" className="group block rounded-2xl">
+            <Card
+              interactive
+              padding="none"
+              className="relative overflow-hidden rounded-2xl border-accent/30 bg-accent-subtle"
+            >
+              <span
+                className="pointer-events-none absolute -top-20 -right-14 size-56 rounded-full bg-accent/20 blur-3xl"
+                aria-hidden="true"
+              />
+
+              <div className="relative flex items-center gap-4 p-5">
                 <span
-                  className="grid size-11 place-items-center rounded-xl bg-accent text-accent-contrast shadow-accent transition-transform duration-200 ease-spring group-hover:scale-105"
+                  className="relative grid size-16 shrink-0 place-items-center"
                   aria-hidden="true"
                 >
-                  <Camera size={22} strokeWidth={1.9} />
+                  {/* Os mesmos anéis da tela de entrada, agora em repouso: aqui
+                      eles marcam a identidade sem chamar atenção para si. */}
+                  <span className="absolute size-16 rounded-full border border-accent/30" />
+                  <span className="absolute size-[3.25rem] rounded-full border border-accent/50" />
+                  <span className="grid size-11 place-items-center rounded-full bg-accent text-accent-contrast shadow-accent transition-transform duration-200 ease-spring group-hover:scale-105">
+                    <Camera size={22} strokeWidth={1.9} />
+                  </span>
                 </span>
-                <p className="mt-3 text-base font-semibold text-text">Escanear</p>
-                <p className="mt-0.5 text-xs text-text-muted">Câmera ou galeria</p>
-              </Card>
-            </Link>
 
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl font-bold tracking-tight text-text">Escanear material</p>
+                  <p className="mt-0.5 text-sm text-text-muted">
+                    Fotografe a lousa e receba resumo, tópicos e flashcards
+                  </p>
+                </div>
+
+                <ChevronRight
+                  size={22}
+                  className="shrink-0 text-accent transition-transform duration-200 ease-enter group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </div>
+            </Card>
+          </Link>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <Link to="/folders" className="group block rounded-xl">
               <Card interactive padding="lg" className="bg-surface-gradient h-full">
                 <span
-                  className="grid size-11 place-items-center rounded-xl bg-surface-sunken text-text-muted transition-transform duration-200 ease-spring group-hover:scale-105"
+                  className="grid size-10 place-items-center rounded-xl bg-surface-sunken text-text-muted transition-transform duration-200 ease-spring group-hover:scale-105"
                   aria-hidden="true"
                 >
-                  <FolderOpen size={22} strokeWidth={1.9} />
+                  <FolderOpen size={20} strokeWidth={1.9} />
                 </span>
-                <p className="mt-3 text-base font-semibold text-text">Minhas pastas</p>
+                <p className="mt-3 text-sm font-semibold text-text">Minhas pastas</p>
                 <p className="mt-0.5 text-xs text-text-muted">
                   {stats
                     ? `${stats.contents} ${stats.contents === 1 ? "material" : "materiais"}`
                     : "Conteúdos salvos"}
                 </p>
+              </Card>
+            </Link>
+
+            <Link to="/search" className="group block rounded-xl">
+              <Card interactive padding="lg" className="bg-surface-gradient h-full">
+                <span
+                  className="grid size-10 place-items-center rounded-xl bg-surface-sunken text-text-muted transition-transform duration-200 ease-spring group-hover:scale-105"
+                  aria-hidden="true"
+                >
+                  <Search size={20} strokeWidth={1.9} />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-text">Buscar</p>
+                <p className="mt-0.5 text-xs text-text-muted">Em todo o conteúdo</p>
               </Card>
             </Link>
           </div>
@@ -254,34 +293,14 @@ export function HomePage() {
           )}
         </section>
 
-        <section
-          className="mt-8 opacity-0 animate-rise-in"
-          style={{ animationDelay: "180ms" }}
-          aria-labelledby="shortcuts-heading"
-        >
-          <SectionLabel id="shortcuts-heading">Atalhos</SectionLabel>
-
-          <div className="flex flex-col gap-2">
-            <ShortcutRow
-              to="/search"
-              icon={<Search size={19} />}
-              title="Buscar nos materiais"
-              description="Procure por qualquer palavra do conteúdo"
-            />
-            <ShortcutRow
-              to="/settings"
-              icon={<Sparkles size={19} />}
-              title="Acessibilidade"
-              description="Fonte, contraste, leitura em voz alta"
-            />
-            <ShortcutRow
-              to="/flashcards"
-              icon={<BookOpen size={19} />}
-              title="Estudar agora"
-              description="Sessão de revisão com repetição espaçada"
-            />
-          </div>
-        </section>
+        {/*
+          A seção "Atalhos" saiu inteira: os três itens eram terceiros caminhos
+          para destinos que já tinham dois. "Estudar agora" repetia o cartão de
+          revisão do topo; "Acessibilidade" repetia a aba Ajustes da barra de
+          baixo; "Buscar" subiu para junto de Pastas, onde tem companhia lógica
+          em vez de uma lista só sua. Uma tela inicial que termina em três links
+          para onde a pessoa já podia ir só adia o fim da rolagem.
+        */}
       </main>
 
       <BottomNav />
@@ -330,39 +349,5 @@ function StatCard({
         <p className="text-xs leading-snug text-text-muted">{label}</p>
       </div>
     </Card>
-  );
-}
-
-function ShortcutRow({
-  to,
-  icon,
-  title,
-  description,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Link to={to} className="group block rounded-xl">
-      <Card interactive padding="md" className="flex items-center gap-3.5">
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-sunken text-text-muted transition-colors duration-200 group-hover:bg-accent-subtle group-hover:text-accent"
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-text">{title}</span>
-          <span className="mt-0.5 block text-xs text-text-muted">{description}</span>
-        </span>
-        <ChevronRight
-          size={19}
-          className="shrink-0 text-text-subtle transition-transform duration-200 ease-enter group-hover:translate-x-0.5"
-          aria-hidden="true"
-        />
-      </Card>
-    </Link>
   );
 }
