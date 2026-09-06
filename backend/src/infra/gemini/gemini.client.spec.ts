@@ -1,4 +1,5 @@
 import {
+  attemptBudget,
   backoffDelay,
   buildCandidates,
   isModelUnavailable,
@@ -108,5 +109,31 @@ describe('buildCandidates', () => {
 
   it('sempre oferece mais de um modelo', () => {
     expect(buildCandidates('gemini-3.5-flash').length).toBeGreaterThan(1);
+  });
+});
+
+describe('attemptBudget', () => {
+  /*
+   * O caso que motivou a função: uma chamada travada consumia os 45s inteiros,
+   * e os dois modelos seguintes — que podiam estar livres — nunca eram
+   * tentados. O log registrava "tentativa 1" e "orçamento esgotado" no mesmo
+   * segundo.
+   */
+  it('reparte o tempo restante entre os modelos que faltam', () => {
+    expect(attemptBudget(45_000, 3)).toBe(15_000);
+    expect(attemptBudget(30_000, 2)).toBe(15_000);
+  });
+
+  it('não deixa uma tentativa abaixo do mínimo útil', () => {
+    // Uma janela de 2s cortaria respostas que levam 3s no caminho feliz.
+    expect(attemptBudget(2_000, 3)).toBe(9_000);
+  });
+
+  it('não deixa uma tentativa monopolizar o orçamento', () => {
+    expect(attemptBudget(45_000, 1)).toBe(20_000);
+  });
+
+  it('trata o último modelo sem dividir por zero', () => {
+    expect(attemptBudget(10_000, 0)).toBe(10_000);
   });
 });
