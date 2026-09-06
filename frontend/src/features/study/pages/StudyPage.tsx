@@ -415,8 +415,12 @@ export function StudyPage() {
         <Progress value={index} max={total} label={`Cartão ${index + 1} de ${total}`} />
 
         {isPersisted(current) && (
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <p className="truncate text-xs text-text-subtle">{current.content.title}</p>
+          /* Título à esquerda, consulta à direita: centralizados, os dois
+             disputavam o eixo e o botão parecia pendurado no texto. */
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-sm font-medium text-text-muted">
+              {current.content.title}
+            </p>
             <SummaryPeek contentId={current.content.id} />
           </div>
         )}
@@ -427,7 +431,7 @@ export function StudyPage() {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-6">
+      <div className="flex flex-1 flex-col justify-center py-4">
         {/*
           O cartão inteiro é o alvo de virada, e por isso é um `button` de
           verdade: Enter e Espaço já funcionam, o foco já é visível e o estado
@@ -446,28 +450,53 @@ export function StudyPage() {
           </span>
 
           <span className="flashcard-inner block" aria-live="polite">
+            {/*
+              A frente carrega o peso visual da tela inteira, e antes era um
+              retângulo de cor chapada. O degradê e o brilho no canto superior
+              dão a ela a mesma profundidade que os cartões do resto do app —
+              e, num aparelho, a diferença entre "tela carregando" e "objeto
+              que se vira" está justamente nesse volume.
+            */}
             <span
-              className="flashcard-face flex flex-col items-center justify-center gap-4 overflow-y-auto rounded-2xl border border-accent/30 bg-accent p-6 text-center text-accent-contrast shadow-accent"
+              className="flashcard-face relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-br from-accent-hover via-accent to-accent p-7 text-center text-accent-contrast shadow-accent"
               data-face="front"
               aria-hidden={flipped}
             >
-              <span className="rounded-full border border-accent-contrast/25 px-2.5 py-0.5 text-2xs font-semibold tracking-wide uppercase">
+              <span
+                className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/15 blur-3xl"
+                aria-hidden="true"
+              />
+
+              <span className="relative rounded-full border border-accent-contrast/30 bg-accent-contrast/10 px-3 py-1 text-2xs font-semibold tracking-wider uppercase">
                 Pergunta
               </span>
-              <span className="text-lg leading-relaxed font-semibold">{current.question}</span>
-              <span className="text-xs opacity-80" aria-hidden="true">
+              <span className="relative text-xl leading-snug font-semibold text-balance">
+                {current.question}
+              </span>
+              <span className="relative text-xs opacity-75" aria-hidden="true">
                 Toque para ver a resposta
               </span>
             </span>
 
+            {/* O verso inverte a relação: superfície calma, para que a
+                resposta se leia sem a cor competindo com o texto. */}
             <span
-              className="flashcard-face flex flex-col items-center justify-center gap-4 overflow-y-auto rounded-2xl border border-border bg-surface-raised p-6 text-center shadow-lg"
+              className="flashcard-face relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-accent/25 bg-surface-raised p-7 text-center shadow-lg"
               data-face="back"
               aria-hidden={!flipped}
             >
-              <Badge tone="accent">Resposta</Badge>
-              <span className="text-base leading-relaxed text-text">{current.answer}</span>
-              <span className="text-xs text-text-subtle" aria-hidden="true">
+              <span
+                className="pointer-events-none absolute -bottom-20 -left-10 size-48 rounded-full bg-accent/10 blur-3xl"
+                aria-hidden="true"
+              />
+
+              <Badge tone="accent" className="relative">
+                Resposta
+              </Badge>
+              <span className="relative text-lg leading-relaxed text-balance text-text">
+                {current.answer}
+              </span>
+              <span className="relative text-xs text-text-subtle" aria-hidden="true">
                 Toque para ver a pergunta
               </span>
             </span>

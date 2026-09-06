@@ -6,6 +6,7 @@ import type { Folder as FolderType } from "@/api";
 import { Button, Card, Dialog, EmptyState, Input, SkeletonList, cn } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
+import { PageHeader } from "@/shared/components/PageHeader";
 import { ToastContainer, useToast } from "@/shared/components/Toast";
 
 /**
@@ -36,8 +37,18 @@ type FolderColor = (typeof PALETTE)[number]["value"];
 const COLOR_GROUP_ID = "create-folder-color";
 
 /** Botão só de ícone no alvo de toque mínimo de 44px. */
-const ICON_BUTTON =
-  "grid size-11 shrink-0 place-items-center rounded-lg transition-colors duration-150";
+/*
+ * Renomear e excluir ficavam sempre visíveis em cada linha, e três controles
+ * por pasta competiam com a única coisa que a pessoa veio ler: o nome. Agora
+ * recuam até receber ponteiro ou foco. `focus-visible:opacity-100` no próprio
+ * botão é o que mantém os dois alcançáveis por teclado — sem isso, recuar
+ * viraria esconder.
+ */
+const ICON_BUTTON = cn(
+  "grid size-11 shrink-0 place-items-center rounded-lg",
+  "opacity-0 transition-[opacity,color,background-color] duration-150",
+  "focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100",
+);
 
 function describeCount(total: number) {
   if (total === 0) return "Pasta vazia";
@@ -148,19 +159,19 @@ export function FoldersPage() {
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-28">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-text">Minhas pastas</h1>
-            <p className="mt-1 text-sm text-text-muted">{subtitle}</p>
-          </div>
-
-          <Button
-            icon={<FolderPlus size={18} aria-hidden="true" />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Nova
-          </Button>
-        </div>
+        <PageHeader
+          title="Minhas pastas"
+          description={subtitle}
+          className="mb-4"
+          action={
+            <Button
+              icon={<FolderPlus size={18} aria-hidden="true" />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Nova
+            </Button>
+          }
+        />
 
         {/* O filtro só aparece quando há pastas o bastante para procurar uma.
             Com três, o campo custaria mais atenção do que economiza. */}
@@ -205,7 +216,7 @@ export function FoldersPage() {
               aria-label="Lista de pastas"
             >
               {visibleFolders.map((folder) => (
-                <li key={folder.id}>
+                <li key={folder.id} className="group">
                   {editingId === folder.id ? (
                     <Card elevation="raised" padding="md" className="h-full animate-fade-in">
                       <Input

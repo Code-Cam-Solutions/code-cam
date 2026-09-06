@@ -18,6 +18,7 @@ import type { FontSize } from "@/shared/context/AccessibilityContext";
 import { useAccessibility } from "@/shared/context/AccessibilityContext";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
+import { PageHeader } from "@/shared/components/PageHeader";
 import { useInstallPrompt } from "@/shared/hooks/useInstallPrompt";
 import { useAuth } from "@/shared/context/AuthContext";
 import { Button, Card, Dialog, Switch, ThemeToggle } from "@/design-system";
@@ -90,10 +91,10 @@ export function SettingsPage() {
       <Navbar />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-28">
-        <h1 className="mb-1 text-2xl font-bold text-text">Aparência e acessibilidade</h1>
-        <p className="mb-6 text-sm text-text-muted">
-          Tudo aqui é salvo automaticamente e vale para todas as telas.
-        </p>
+        <PageHeader
+          title="Aparência e acessibilidade"
+          description="Tudo aqui é salvo automaticamente e vale para todas as telas."
+        />
 
         {/* A pré-visualização vem primeiro para que o efeito de cada ajuste
             apareça sem precisar sair da tela. */}
