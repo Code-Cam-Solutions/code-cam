@@ -1,28 +1,42 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  ArrowLeft,
   BookOpen,
   Check,
   Dumbbell,
-  Layers,
+  Home,
   Minus,
   RefreshCcw,
   RotateCcw,
+  ScrollText,
   ThumbsUp,
   Trophy,
   X,
 } from "lucide-react";
 import {
   finishStudySession,
+  getContent,
   getContentCards,
   getStudyQueue,
   recordReview,
   startStudySession,
   type DraftFlashcard,
+  type Content,
   type Flashcard,
   type ReviewRating,
 } from "@/api";
-import { Badge, Button, Card, EmptyState, Progress, Ring, Skeleton, cn } from "@/design-system";
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  Progress,
+  Ring,
+  Skeleton,
+  cn,
+} from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { TTSButton } from "@/shared/components/TTSButton";
 import { useAsync } from "@/shared/hooks/useAsync";
@@ -108,6 +122,102 @@ function nextReviewLabel(days: number): string {
   return months === 1 ? "volta em um mês" : `volta em ${months} meses`;
 }
 
+/**
+ * Consulta ao resumo durante a sessão.
+ *
+ * Existe porque travar em um cartão tinha uma única saída: sair da revisão,
+ * reler o material e recomeçar do zero — perdendo o progresso e, no modo
+ * agendado, contaminando a estatística com uma sessão abandonada. Consultar é
+ * um gesto legítimo de quem estuda; o que não pode é custar a sessão inteira.
+ *
+ * O conteúdo é buscado só quando a pessoa abre, e uma vez por sessão: quem
+ * nunca precisa não paga a requisição.
+ */
+function SummaryPeek({ contentId }: { contentId: string }) {
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState<Content | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function handleOpen() {
+    setOpen(true);
+    if (content || loading) return;
+
+    setLoading(true);
+    setFailed(false);
+    try {
+      setContent(await getContent(contentId));
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => void handleOpen()}
+        className={cn(
+          "flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-full border px-3",
+          "border-border bg-surface text-xs font-medium text-text-muted",
+          "transition-colors duration-150 hover:border-border-strong hover:text-text",
+        )}
+      >
+        <ScrollText size={14} aria-hidden="true" />
+        Resumo
+      </button>
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Resumo do material"
+        description="Sua sessão continua de onde parou."
+      >
+        {loading && <Skeleton className="h-24 rounded-xl" />}
+
+        {failed && (
+          <p role="alert" className="text-sm text-danger">
+            Não consegui carregar o resumo agora. Sua sessão não foi afetada.
+          </p>
+        )}
+
+        {content && !loading && (
+          <div className="flex flex-col gap-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-text-subtle uppercase">Resumo</h3>
+                <TTSButton text={content.summary} label="resumo" />
+              </div>
+              <p className="text-base leading-relaxed text-text">{content.summary}</p>
+            </div>
+
+            {content.topics.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-text-subtle uppercase">Tópicos</h3>
+                <ul className="flex flex-wrap gap-2">
+                  {content.topics.map((topic) => (
+                    <li key={topic}>
+                      <Badge tone="accent" className="max-w-full whitespace-normal">
+                        {topic}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Button variant="secondary" fullWidth className="mt-5" onClick={() => setOpen(false)}>
+          Voltar ao cartão
+        </Button>
+      </Dialog>
+    </>
+  );
+}
+
 interface Tally {
   AGAIN: number;
   HARD: number;
@@ -139,6 +249,13 @@ export function StudyPage() {
   );
 
   const cards: StudyCard[] = isPractice ? (draftCards ?? []) : (queue.data ?? []);
+
+  /**
+   * Para onde o voltar leva. Estudando um material, leva de volta a ele; na
+   * revisão do dia, ao início. Nunca `navigate(-1)`: o histórico depende do
+   * caminho percorrido e mandava a pessoa para telas sem relação nenhuma.
+   */
+  const backTo = contentId ? `/content/${contentId}` : "/";
 
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -227,7 +344,7 @@ export function StudyPage() {
   // ─── Carregando ──────────────────────────────────────────────────────────
   if (!isPractice && queue.status === "loading" && !queue.data) {
     return (
-      <Shell title="Revisão">
+      <Shell title="Revisão" backTo={backTo}>
         <div className="flex flex-col gap-4 pt-4">
           <Skeleton className="h-2 rounded-full" />
           <Skeleton className="h-[clamp(15rem,44vh,21rem)] rounded-2xl" />
@@ -238,7 +355,7 @@ export function StudyPage() {
 
   if (!isPractice && queue.status === "error") {
     return (
-      <Shell title="Revisão">
+      <Shell title="Revisão" backTo={backTo}>
         <EmptyState
           className="animate-rise-in"
           icon={<RefreshCcw size={26} />}
@@ -253,7 +370,7 @@ export function StudyPage() {
   // ─── Nada a estudar ──────────────────────────────────────────────────────
   if (total === 0 || !current) {
     return (
-      <Shell title="Revisão">
+      <Shell title="Revisão" backTo={backTo}>
         <EmptyState
           className="animate-rise-in"
           icon={<Check size={26} />}
@@ -285,21 +402,23 @@ export function StudyPage() {
         isPractice={isPractice}
         sessionId={sessionId}
         onRestart={handleRestart}
-        onLeave={() => void navigate("/")}
+        contentId={contentId}
+        onLeave={() => void navigate(backTo)}
       />
     );
   }
 
   // ─── Estudo ──────────────────────────────────────────────────────────────
   return (
-    <Shell title={studyTitle}>
+    <Shell title={studyTitle} backTo={backTo}>
       <div className="pt-4">
         <Progress value={index} max={total} label={`Cartão ${index + 1} de ${total}`} />
 
         {isPersisted(current) && (
-          <p className="mt-2 truncate text-center text-xs text-text-subtle">
-            {current.content.title}
-          </p>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <p className="truncate text-xs text-text-subtle">{current.content.title}</p>
+            <SummaryPeek contentId={current.content.id} />
+          </div>
         )}
         {isPractice && (
           <p className="mt-2 text-center text-xs text-text-subtle">
@@ -410,10 +529,26 @@ export function StudyPage() {
   );
 }
 
-function Shell({ title, children }: { title: string; children: React.ReactNode }) {
+/**
+ * `backTo` é explícito de propósito.
+ *
+ * Antes o voltar era sempre `navigate(-1)`, o que depende de como a pessoa
+ * chegou aqui. Quem abre a revisão a partir de um material espera voltar para
+ * aquele material — e o histórico podia mandá-la para a busca, para a pasta ou
+ * para lugar nenhum, dependendo do caminho percorrido.
+ */
+function Shell({
+  title,
+  backTo,
+  children,
+}: {
+  title: string;
+  backTo?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
-      <Navbar title={title} showBack />
+      <Navbar title={title} showBack backTo={backTo} />
       <main
         id="main-content"
         className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
@@ -429,6 +564,7 @@ function SessionSummaryView({
   total,
   isPractice,
   sessionId,
+  contentId,
   onRestart,
   onLeave,
 }: {
@@ -437,6 +573,7 @@ function SessionSummaryView({
   isPractice: boolean;
   sessionId: string | null;
   onRestart: () => void;
+  contentId?: string;
   onLeave: () => void;
 }) {
   const remembered = tally.HARD + tally.GOOD;
@@ -454,7 +591,7 @@ function SessionSummaryView({
   const summaryText = `Sessão concluída. Você lembrou ${remembered} de ${total} cartões, ${accuracy} por cento. ${grade.text}`;
 
   return (
-    <Shell title="Resultado">
+    <Shell title="Resultado" backTo={contentId ? `/content/${contentId}` : "/"}>
       <div className="flex flex-1 flex-col justify-center py-8">
         <div className="animate-rise-in text-center">
           <span
@@ -514,14 +651,17 @@ function SessionSummaryView({
           <Button fullWidth size="lg" icon={<RotateCcw size={18} />} onClick={onRestart}>
             {isPractice ? "Praticar de novo" : "Continuar revisando"}
           </Button>
+          {/* O rótulo diz o destino real. "Voltar ao início" depois de estudar
+              um material específico era mentira: a pessoa quer voltar para o
+              material, e era para lá que ela precisava de um caminho. */}
           <Button
             variant="secondary"
             fullWidth
             size="lg"
-            icon={<Layers size={18} />}
+            icon={contentId ? <ArrowLeft size={18} /> : <Home size={18} />}
             onClick={onLeave}
           >
-            Voltar ao início
+            {contentId ? "Voltar ao material" : "Voltar ao início"}
           </Button>
         </div>
       </div>

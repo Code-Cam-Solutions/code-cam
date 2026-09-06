@@ -55,6 +55,15 @@ export class ContentsService {
     });
   }
 
+  /**
+   * Lista sem a imagem, de propósito.
+   *
+   * `imageUrl` guarda uma miniatura em data URL de até ~300 KB. Devolvê-la na
+   * listagem faria uma pasta com vinte materiais transferir 6 MB para desenhar
+   * uma tela onde a foto nem aparece — e no celular, que é onde este app roda,
+   * isso é a diferença entre abrir e travar. A imagem vem em `findOne`, na
+   * tela que de fato a mostra.
+   */
   async findAll(userId: string, filters: ListContentsDto = {}) {
     return this.prisma.content.findMany({
       where: {
@@ -62,7 +71,17 @@ export class ContentsService {
         ...(filters.folderId ? { folderId: filters.folderId } : {}),
       },
       orderBy: { createdAt: 'desc' },
-      include: CONTENT_WITH_FLASHCARDS,
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        topics: true,
+        rawText: true,
+        folderId: true,
+        createdAt: true,
+        updatedAt: true,
+        ...CONTENT_WITH_FLASHCARDS,
+      },
     });
   }
 

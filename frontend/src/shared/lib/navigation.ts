@@ -11,8 +11,13 @@ export interface RouteState {
   "/camera": { scanError?: string };
   "/camera/review": { photo?: CapturedPhoto };
   "/camera/formats": { photo?: CapturedPhoto };
-  "/processing": { imageBlob?: Blob; formats?: StudyFormat[] };
-  "/result": { result?: ScanResult; formats?: StudyFormat[] };
+  /**
+   * `thumbnail` acompanha a foto até o fim do fluxo. Antes parava aqui: a
+   * imagem era enviada para análise e descartada, e o material salvo ficava
+   * sem a foto que o originou.
+   */
+  "/processing": { imageBlob?: Blob; formats?: StudyFormat[]; thumbnail?: string | null };
+  "/result": { result?: ScanResult; formats?: StudyFormat[]; thumbnail?: string | null };
   /**
    * Cartões recém-gerados, ainda não salvos. Presente só no modo prática —
    * a revisão de verdade busca a fila no servidor e não recebe estado.

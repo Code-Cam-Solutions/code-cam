@@ -80,7 +80,7 @@ export function FormatSelectionPage() {
   function handleGenerate() {
     if (!photo || selected.length === 0) return;
     void navigate("/processing", {
-      state: { imageBlob: photo.blob, formats: selected },
+      state: { imageBlob: photo.blob, formats: selected, thumbnail: photo.thumbnail },
       replace: true,
     });
   }
