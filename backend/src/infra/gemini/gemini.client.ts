@@ -56,6 +56,54 @@ const RETRY_BASE_MS = 700;
 const TOTAL_BUDGET_MS = 45_000;
 
 /**
+ * Teto de uma única chamada ao modelo.
+ *
+ * Sem isto, a lista de modelos alternativos era decorativa. Uma chamada que
+ * trava não devolve erro: ela fica pendurada até o orçamento inteiro acabar, e
+ * aí não sobra tempo para tentar o próximo modelo. Foi exatamente o que os
+ * logs mostraram — "tentativa 1" seguida de "orçamento esgotado" no mesmo
+ * segundo, com dois modelos livres que nunca chegaram a ser chamados.
+ *
+ * O valor é dividido pelo que resta de orçamento e de candidatos, para que a
+ * fila inteira caiba no tempo total, e limitado por baixo para não cortar uma
+ * resposta que estava quase chegando.
+ */
+const MIN_ATTEMPT_MS = 9_000;
+const MAX_ATTEMPT_MS = 20_000;
+
+/** Reparte o tempo que sobra entre os modelos que ainda não foram tentados. */
+export function attemptBudget(remainingMs: number, remainingModels: number): number {
+  const share = remainingMs / Math.max(1, remainingModels);
+  return Math.round(Math.min(MAX_ATTEMPT_MS, Math.max(MIN_ATTEMPT_MS, share)));
+}
+
+/**
+ * Corre a chamada contra um relógio.
+ *
+ * O SDK do Gemini não expõe cancelamento, então a promessa perdedora segue
+ * viva em segundo plano — o que se ganha é o direito de seguir em frente sem
+ * esperá-la, que é o ponto.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`timeout: o modelo não respondeu em ${ms}ms`));
+    }, ms);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      },
+    );
+  });
+}
+
+/**
  * Fronteira com o Google Gemini.
  *
  * Isolado em `infra` porque é a única parte do scan que depende de rede,
@@ -97,13 +145,17 @@ export class GeminiClient {
     const deadline = Date.now() + TOTAL_BUDGET_MS;
     let lastError: unknown;
 
-    for (const modelName of this.candidates) {
+    for (const [index, modelName] of this.candidates.entries()) {
       for (let attempt = 1; attempt <= ATTEMPTS_PER_MODEL; attempt++) {
         try {
-          const result = await this.modelFor(modelName).generateContent([
-            prompt,
-            { inlineData: { data: image.base64, mimeType: image.mimeType } },
-          ]);
+          const budget = attemptBudget(deadline - Date.now(), this.candidates.length - index);
+          const result = await withTimeout(
+            this.modelFor(modelName).generateContent([
+              prompt,
+              { inlineData: { data: image.base64, mimeType: image.mimeType } },
+            ]),
+            budget,
+          );
           return result.response.text();
         } catch (err) {
           lastError = err;
@@ -191,6 +243,20 @@ export class GeminiClient {
     if (isOverloaded(message)) {
       return new ServiceUnavailableException(
         'A IA está sobrecarregada neste momento. Aguarde alguns segundos e tente de novo.',
+      );
+    }
+
+    /*
+     * O filtro de recitação bloqueia a resposta quando ela se parece demais com
+     * texto protegido — o que acontece justamente com página de livro didático,
+     * que é material típico deste app. Não é sobrecarga nem erro de rede:
+     * repetir a mesma foto dá o mesmo bloqueio, e o que muda o resultado é
+     * mudar o enquadramento.
+     */
+    if (message.includes('RECITATION')) {
+      return new ServiceUnavailableException(
+        'A IA bloqueou a resposta por semelhança com texto protegido por direitos autorais. ' +
+          'Fotografe um trecho menor ou enquadre só a parte que você quer estudar.',
       );
     }
 
