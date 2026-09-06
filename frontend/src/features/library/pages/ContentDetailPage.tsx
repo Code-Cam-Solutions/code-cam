@@ -5,9 +5,12 @@ import {
   CalendarDays,
   ChevronDown,
   FileText,
+  ImageOff,
   Layers,
   ListChecks,
+  Maximize2,
   Play,
+  X,
 } from "lucide-react";
 import { getContent } from "@/api";
 import type { Content } from "@/api";
@@ -15,6 +18,7 @@ import { Badge, Button, Card, EmptyState, SkeletonList, cn } from "@/design-syst
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
 import { TTSButton } from "@/shared/components/TTSButton";
+import { useEscapeKey } from "@/shared/hooks/useEscapeKey";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
@@ -114,6 +118,109 @@ function RawTextSection({ text }: { text: string }) {
   );
 }
 
+/**
+ * A foto que originou o material.
+ *
+ * Fica no topo porque é o que o estudante reconhece antes de ler qualquer
+ * palavra — semanas depois, "aquela lousa de fotossíntese" é uma imagem na
+ * memória, não um título. O toque abre em tela cheia porque a miniatura de
+ * 800px serve para reconhecer, e às vezes é preciso conferir um detalhe.
+ */
+function CapturePhoto({ src, title }: { src: string; title: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [broken, setBroken] = useState(false);
+
+  useEscapeKey(expanded, () => setExpanded(false));
+
+  if (broken) {
+    return (
+      <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-border bg-surface-sunken px-4 py-3">
+        <ImageOff size={18} className="shrink-0 text-text-subtle" aria-hidden="true" />
+        <p className="text-sm text-text-subtle">A foto deste material não pôde ser carregada.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-label={`Ampliar a foto de ${title}`}
+        className={cn(
+          "group relative mb-6 block w-full overflow-hidden rounded-2xl",
+          "border border-border bg-black",
+          "transition-transform duration-200 ease-enter active:scale-[0.99]",
+        )}
+      >
+        <img
+          src={src}
+          alt={`Foto capturada de ${title}`}
+          onError={() => setBroken(true)}
+          className="max-h-56 w-full object-cover"
+        />
+        {/* Véu inferior: garante contraste do selo sobre foto de qualquer cor. */}
+        <span
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent"
+          aria-hidden="true"
+        />
+        <span
+          className={cn(
+            "absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full",
+            "bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm",
+            "transition-transform duration-200 ease-enter group-hover:scale-105",
+          )}
+          aria-hidden="true"
+        >
+          <Maximize2 size={13} />
+          Ampliar
+        </span>
+      </button>
+
+      {expanded && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto de ${title} em tela cheia`}
+          className="fixed inset-0 animate-fade-in bg-black/95"
+          style={{ zIndex: "var(--ds-z-modal)" }}
+        >
+          {/* O fundo é um botão, não uma `div` com `onClick`: tocar fora para
+              fechar precisa existir também para quem navega por teclado. */}
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-label="Fechar a foto ampliada"
+            tabIndex={-1}
+            className="absolute inset-0 size-full cursor-zoom-out"
+          />
+
+          <div className="pointer-events-none grid size-full place-items-center p-4">
+            <img
+              src={src}
+              alt={`Foto capturada de ${title}`}
+              className="max-h-full max-w-full object-contain"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-label="Fechar a foto ampliada"
+            autoFocus
+            className={cn(
+              "absolute top-[calc(1rem+env(safe-area-inset-top))] right-4",
+              "grid size-11 place-items-center rounded-full",
+              "border border-white/20 bg-black/60 text-white backdrop-blur-md",
+            )}
+          >
+            <X size={22} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function ContentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -172,6 +279,8 @@ export function ContentDetailPage() {
       <Navbar title="Conteúdo" showBack />
 
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-28">
+        {content.imageUrl && <CapturePhoto src={content.imageUrl} title={content.title} />}
+
         {/* Cabeçalho — título e metadados soltos sobre o fundo, sem card, para
             que a leitura comece pelo assunto e não por uma moldura. */}
         <header className="mb-7 animate-rise-in">

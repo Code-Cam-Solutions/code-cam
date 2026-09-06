@@ -19,7 +19,7 @@ const TICK_MS = 140;
 
 export function ProcessingPage() {
   const navigate = useNavigate();
-  const { imageBlob, formats } = useRouteState<"/processing">();
+  const { imageBlob, formats, thumbnail } = useRouteState<"/processing">();
   const hasFired = useRef(false);
   const [progress, setProgress] = useState(6);
 
@@ -37,7 +37,7 @@ export function ProcessingPage() {
     async function process(blob: Blob) {
       try {
         const result = await scanImage(blob, formats ?? ["summary", "topics", "flashcards"]);
-        await navigate("/result", { state: { result, formats }, replace: true });
+        await navigate("/result", { state: { result, formats, thumbnail }, replace: true });
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Erro ao processar imagem. Tente novamente.";

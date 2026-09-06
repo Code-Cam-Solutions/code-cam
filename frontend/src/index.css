@@ -386,6 +386,29 @@ input[type="radio"] {
   animation: ds-shutter-flash 320ms var(--ds-ease-exit) forwards;
 }
 
+/* Anéis de foco da marca.
+   A logo do CodeCam é uma lente, e a tela de entrada é o único lugar do app
+   com espaço para dizer isso. Os anéis expandem como um autofoco travando —
+   movimento lento e de baixa opacidade, para sugerir sem disputar com o
+   formulário, que é o que a pessoa veio fazer aqui. */
+@keyframes ds-focus-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+
+.animate-focus-ring {
+  animation: ds-focus-ring 3.4s var(--ds-ease-enter) infinite;
+}
+
 /* Movimento reduzido: os tokens já zeram a duração, mas animações infinitas
    precisam ser interrompidas explicitamente. */
 @media (prefers-reduced-motion: reduce) {
@@ -397,6 +420,12 @@ input[type="radio"] {
   /* O clarão é curto e não se repete, mas é uma mudança abrupta de luminância
      na tela inteira — exatamente o que este modo pede para evitar. */
   .animate-shutter-flash {
+    animation: none;
+    opacity: 0;
+  }
+
+  /* Os anéis são decorativos e infinitos: somem por inteiro neste modo. */
+  .animate-focus-ring {
     animation: none;
     opacity: 0;
   }

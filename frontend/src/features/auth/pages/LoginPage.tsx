@@ -1,9 +1,43 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpen, User } from "lucide-react";
+import { ArrowRight, Camera, Layers, ListChecks, Sparkles, User } from "lucide-react";
 import { useAuth } from "@/shared/context/AuthContext";
 import { login } from "@/api";
-import { Button, Card, Input } from "@/design-system";
+import { Button, Card, Input, cn } from "@/design-system";
+
+/**
+ * O que o app entrega, dito antes de pedir qualquer coisa.
+ *
+ * A tela anterior pedia o nome sem nunca explicar o que aconteceria depois — e
+ * quem chega por QR Code, na sala de aula, não viu página nenhuma antes desta.
+ * Três palavras resolvem o que um parágrafo não resolveria.
+ */
+const CAPABILITIES = [
+  { icon: Sparkles, label: "Resumos" },
+  { icon: ListChecks, label: "Tópicos" },
+  { icon: Layers, label: "Flashcards" },
+] as const;
+
+/** Anéis concêntricos da marca, expandindo como um autofoco. Decorativos. */
+function LensMark() {
+  return (
+    <div className="relative mb-6 grid size-24 place-items-center" aria-hidden="true">
+      {/* Dois anéis defasados: um só pulsando parece um erro de renderização,
+          dois em sequência leem como foco. */}
+      {[0, 1700].map((delay) => (
+        <span
+          key={delay}
+          className="absolute size-20 animate-focus-ring rounded-full border-2 border-accent"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+
+      <span className="absolute size-24 rounded-full bg-accent/10 blur-2xl" />
+
+      <img src="/logo-codecam.svg" alt="" className="relative size-20" />
+    </div>
+  );
+}
 
 export function LoginPage() {
   const [name, setName] = useState("");
@@ -34,28 +68,60 @@ export function LoginPage() {
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-bg">
-      {/* Halo de acento atrás da marca. Puramente decorativo: acompanha o tema
-          porque é o próprio token de acento esmaecido, não uma cor fixa. */}
-      <div
-        className="pointer-events-none absolute -top-32 left-1/2 size-80 -translate-x-1/2 rounded-full bg-accent-subtle blur-3xl"
-        aria-hidden="true"
-      />
+      {/*
+        Profundidade em três camadas, todas derivadas do token de acento — nada
+        aqui é cor fixa, então claro, escuro e alto contraste reagem sozinhos.
+        A malha de linhas evoca o enquadramento da câmera sem desenhar um ícone
+        de câmera, que seria literal demais para um fundo.
+      */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-40 left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-accent/12 blur-3xl" />
+        <div className="absolute -bottom-32 -left-24 size-72 rounded-full bg-accent/8 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage:
+              "linear-gradient(var(--ds-text) 1px, transparent 1px), linear-gradient(90deg, var(--ds-text) 1px, transparent 1px)",
+            backgroundSize: "44px 44px",
+            // Esmaece a malha nas bordas para que ela não termine em um corte
+            // reto, que denunciaria a textura como um retângulo colado.
+            maskImage: "radial-gradient(ellipse at 50% 30%, black 20%, transparent 72%)",
+          }}
+        />
+      </div>
 
       <main
         id="main-content"
-        className="relative flex flex-1 flex-col items-center justify-center px-6 py-12"
+        className="relative flex flex-1 flex-col items-center justify-center px-6 py-10"
       >
-        <div className="w-full max-w-sm animate-rise-in">
-          <div className="mb-9 flex flex-col items-center text-center">
-            {/* Sem disco de fundo: a marca já é um círculo, e envolvê-la em
-                outro só criava um segundo contorno concorrendo com o dela. */}
-            <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="mb-5 size-20" />
+        <div className="flex w-full max-w-sm animate-rise-in flex-col items-center">
+          <LensMark />
 
-            <h1 className="text-3xl font-bold text-accent">CodeCam</h1>
-            <p className="mt-2 text-base text-text-muted">Escaneie, aprenda, evolua.</p>
-          </div>
+          <h1 className="text-4xl font-bold tracking-tight text-text">
+            Code<span className="text-accent">Cam</span>
+          </h1>
+          <p className="mt-2 text-center text-base text-text-muted">
+            Fotografe a lousa. Estude o essencial.
+          </p>
 
-          <Card elevation="raised" padding="lg">
+          {/* Selos do que o app faz. Ícone e texto juntos: o ícone sozinho não
+              informaria quem não conhece a convenção. */}
+          <ul className="mt-6 flex flex-wrap justify-center gap-2">
+            {CAPABILITIES.map(({ icon: Icon, label }) => (
+              <li
+                key={label}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border border-border",
+                  "bg-surface/70 px-3 py-1.5 text-xs font-medium text-text-muted backdrop-blur-sm",
+                )}
+              >
+                <Icon size={14} className="text-accent" aria-hidden="true" />
+                {label}
+              </li>
+            ))}
+          </ul>
+
+          <Card elevation="floating" padding="lg" className="mt-8 w-full">
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
               <Input
                 label="Como posso te chamar?"
@@ -85,18 +151,17 @@ export function LoginPage() {
             </form>
           </Card>
 
-          <Card padding="lg" className="mt-4 flex items-start gap-3">
-            <span
-              className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-subtle text-accent"
-              aria-hidden="true"
-            >
-              <BookOpen size={18} />
+          {/*
+            Antes isto era um segundo cartão, do mesmo peso visual do
+            formulário — duas caixas empilhadas disputando a mesma atenção em
+            uma tela com um único campo. Como texto solto, informa sem competir.
+          */}
+          <p className="mt-5 flex items-start gap-2 px-2 text-center text-sm text-text-subtle">
+            <Camera size={15} className="mt-0.5 shrink-0 text-text-subtle" aria-hidden="true" />
+            <span>
+              Sem senha e sem cadastro. Seu nome basta — e tudo pode ser lido em voz alta.
             </span>
-            <p className="text-sm leading-relaxed text-text-muted">
-              Não é necessário senha. Basta digitar seu nome para começar a estudar com
-              acessibilidade.
-            </p>
-          </Card>
+          </p>
         </div>
       </main>
     </div>

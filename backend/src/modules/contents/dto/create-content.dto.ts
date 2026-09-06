@@ -24,6 +24,12 @@ const MAX_TOPICS = 30;
 const MAX_TOPIC = 300;
 const MAX_FLASHCARDS = 50;
 const MAX_CARD_SIDE = 2_000;
+/**
+ * Miniatura em data URL. Casado com o teto do gerador no frontend: acima disso
+ * a miniatura é descartada lá, e o que chegar aqui maior que isso não veio do
+ * app. Sem este limite, uma foto inteira em base64 iria direto para a coluna.
+ */
+const MAX_IMAGE_URL = 400_000;
 
 export class FlashcardDto {
   @IsString()
@@ -71,6 +77,7 @@ export class CreateContentDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(MAX_IMAGE_URL)
   imageUrl?: string;
 
   @IsUUID()

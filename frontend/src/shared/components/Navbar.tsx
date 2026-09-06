@@ -1,6 +1,5 @@
-import { ChevronLeft, LogOut, Settings } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/shared/context/AuthContext";
 import { cn } from "@/design-system";
 
 interface NavbarProps {
@@ -16,13 +15,7 @@ const ICON_BUTTON = cn(
 );
 
 export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  function handleLogout() {
-    logout();
-    void navigate("/login");
-  }
 
   function handleBack() {
     // As sobrecargas de `navigate` para destino e para delta são distintas, e
@@ -47,11 +40,20 @@ export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
       style={{ zIndex: "var(--ds-z-nav)" }}
     >
       <div className="flex min-w-0 items-center gap-1">
-        {showBack ? (
+        {showBack && (
           <button type="button" onClick={handleBack} aria-label="Voltar" className={ICON_BUTTON}>
             <ChevronLeft size={22} aria-hidden="true" />
           </button>
-        ) : (
+        )}
+
+        {/*
+          Marca e título nunca aparecem juntos.
+          Antes apareciam, e o resultado era "CodeCam Acessibilidade" lado a
+          lado no topo — duas identidades no mesmo lugar, sem hierarquia entre
+          elas. A marca vale onde a tela não tem nome próprio (o início); onde
+          tem, o nome da tela é o que orienta.
+        */}
+        {title === undefined ? (
           <Link
             to="/"
             aria-label="CodeCam — início"
@@ -60,33 +62,30 @@ export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
             <img src="/logo-codecam.svg" alt="" aria-hidden="true" className="size-6" />
             <span className="text-lg font-bold text-accent">CodeCam</span>
           </Link>
-        )}
-
-        {title !== undefined && (
-          <h1
-            className={cn("truncate text-lg font-semibold text-text", showBack ? "ml-0" : "ml-2")}
-          >
+        ) : (
+          /*
+            `p`, não `h1`.
+            A barra é moldura: ela diz onde a pessoa está enquanto rola a
+            página. O título da página é o `h1` do conteúdo. Como `h1`, esta
+            linha criava um segundo título em seis telas — e quem usa leitor de
+            tela ouvia "Acessibilidade" e logo depois "Aparência e
+            acessibilidade", sem saber qual dos dois nomeia a página.
+          */
+          <p className={cn("truncate text-lg font-semibold text-text", !showBack && "ml-3")}>
             {title}
-          </h1>
+          </p>
         )}
       </div>
 
-      <nav className="flex shrink-0 items-center gap-0.5" aria-label="Ações da conta">
-        <Link to="/settings" aria-label="Aparência e acessibilidade" className={ICON_BUTTON}>
-          <Settings size={20} aria-hidden="true" />
-        </Link>
-
-        {user && (
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Sair da conta"
-            className={ICON_BUTTON}
-          >
-            <LogOut size={20} aria-hidden="true" />
-          </button>
-        )}
-      </nav>
+      {/*
+        Esta barra não carrega mais ações de conta.
+        Havia uma engrenagem aqui em cima e um "Ajustes" na barra de baixo, na
+        mesma tela, levando ao mesmo lugar — dois caminhos para um destino,
+        ocupando o canto onde o olho procura a ação da tela atual. E o sair era
+        um ícone sem rótulo, a um toque de distância em todas as telas, sem
+        confirmação: fácil de acertar sem querer, difícil de encontrar de
+        propósito. Ambos foram para Ajustes, onde têm nome e espaço.
+      */}
     </header>
   );
 }

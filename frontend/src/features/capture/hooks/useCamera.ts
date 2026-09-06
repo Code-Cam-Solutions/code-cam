@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isBlurry, measureSharpness } from "@/features/capture/lib/image-quality";
+import { createThumbnail } from "@/features/capture/lib/thumbnail";
 
 export type CameraStatus = "requesting" | "active" | "error";
 export type FacingMode = "environment" | "user";
@@ -22,6 +23,14 @@ export interface CapturedPhoto {
   /** Variância do laplaciano; `null` quando não foi possível medir. */
   sharpness: number | null;
   blurry: boolean;
+  /**
+   * Miniatura em data URL, guardada junto do material salvo. `null` quando não
+   * foi possível gerar — o que nunca impede o material de ser salvo.
+   *
+   * Existe separada de `url` porque aquela é um object URL: vive só enquanto a
+   * aba está aberta e não sobrevive a um recarregamento, quanto mais ao banco.
+   */
+  thumbnail: string | null;
 }
 
 const ERRORS: Record<CameraErrorType, Omit<CameraError, "type">> = {
@@ -273,6 +282,7 @@ export function useCamera() {
       height,
       sharpness,
       blurry: isBlurry(sharpness),
+      thumbnail: createThumbnail(canvas, width, height),
     };
   }, []);
 
@@ -281,23 +291,28 @@ export function useCamera() {
     const url = URL.createObjectURL(file);
     const image = new Image();
 
-    const measured = await new Promise<{ sharpness: number | null; w: number; h: number }>(
-      (resolve) => {
-        image.onload = () => {
-          resolve({
-            sharpness: measureSharpness(image, image.naturalWidth, image.naturalHeight),
-            w: image.naturalWidth,
-            h: image.naturalHeight,
-          });
-        };
-        // Imagem que não decodifica segue adiante sem medição: o backend ainda
-        // vai recusá-la com uma mensagem melhor do que qualquer palpite daqui.
-        image.onerror = () => {
-          resolve({ sharpness: null, w: 0, h: 0 });
-        };
-        image.src = url;
-      },
-    );
+    const measured = await new Promise<{
+      sharpness: number | null;
+      thumbnail: string | null;
+      w: number;
+      h: number;
+    }>((resolve) => {
+      image.onload = () => {
+        const { naturalWidth: w, naturalHeight: h } = image;
+        resolve({
+          sharpness: measureSharpness(image, w, h),
+          thumbnail: createThumbnail(image, w, h),
+          w,
+          h,
+        });
+      };
+      // Imagem que não decodifica segue adiante sem medição: o backend ainda
+      // vai recusá-la com uma mensagem melhor do que qualquer palpite daqui.
+      image.onerror = () => {
+        resolve({ sharpness: null, thumbnail: null, w: 0, h: 0 });
+      };
+      image.src = url;
+    });
 
     return {
       blob: file,
@@ -306,6 +321,7 @@ export function useCamera() {
       height: measured.h,
       sharpness: measured.sharpness,
       blurry: isBlurry(measured.sharpness),
+      thumbnail: measured.thumbnail,
     };
   }, []);
 

@@ -46,6 +46,11 @@ export function ReviewCapturePage() {
         id="main-content"
         className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]"
       >
+        {/* A foto é o conteúdo desta tela e ocupa o topo. O título existe para
+            quem não a vê: anuncia onde a pessoa está sem roubar o espaço que a
+            imagem precisa para ser conferida. */}
+        <h1 className="sr-only">Revisar imagem</h1>
+
         {/* `object-contain` sobre fundo preto: a foto aparece inteira, como
             será enviada. Cortar aqui esconderia justamente a borda que o
             usuário precisa conferir. */}

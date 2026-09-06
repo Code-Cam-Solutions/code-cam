@@ -118,7 +118,7 @@ function RawTextSection({ text }: { text: string }) {
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { result } = useRouteState<"/result">();
+  const { result, thumbnail } = useRouteState<"/result">();
   const { toasts, addToast, removeToast } = useToast();
 
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -174,6 +174,9 @@ export function ResultPage() {
         topics: result.topics,
         flashcards: result.flashcards,
         rawText: result.rawText,
+        // A foto que originou o material. Sem isto, a pasta guardava um resumo
+        // órfão — e era justamente a imagem que dizia de que aula se tratava.
+        imageUrl: thumbnail ?? undefined,
         folderId,
       });
       setSaved(true);

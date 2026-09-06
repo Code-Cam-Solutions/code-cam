@@ -75,6 +75,8 @@ export function saveContent(data: {
   topics: string[];
   flashcards: DraftFlashcard[];
   rawText: string;
+  /** Miniatura da foto, em data URL. Opcional: nem toda captura gera uma. */
+  imageUrl?: string;
   folderId?: string;
 }): Promise<Content> {
   return request<Content>("/contents", { method: "POST", json: data });
