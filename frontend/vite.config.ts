@@ -5,6 +5,14 @@ import { VitePWA } from "vite-plugin-pwa";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import path from "node:path";
 
+/*
+ * O https é ligado por padrão porque sem ele a câmera não existe fora de
+ * `localhost`. `VITE_DEV_HTTPS=false` desliga, para quem trabalha só no
+ * localhost e não quer o aviso de certificado a cada aba nova — e para
+ * ferramentas que recusam certificado autoassinado.
+ */
+const useHttps = process.env.VITE_DEV_HTTPS !== "false";
+
 export default defineConfig({
   plugins: [
     react(),
@@ -22,7 +30,7 @@ export default defineConfig({
      * O certificado é autoassinado, então o aparelho mostra um aviso na
      * primeira visita. É o preço de ter câmera em rede local sem um domínio.
      */
-    basicSsl(),
+    ...(useHttps ? [basicSsl()] : []),
 
     /*
      * O CodeCam é aberto por QR Code, em celular, muitas vezes na rede da
