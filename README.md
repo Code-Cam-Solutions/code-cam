@@ -10,8 +10,8 @@ O CodeCam permite que estudantes fotografem materiais de estudo (lousas, caderno
 
 - **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS v4
 - **Backend:** NestJS + Prisma + PostgreSQL
-- **IA:** Google Gemini 1.5 Flash
-- **Deploy:** Vercel (frontend) + Railway (backend + banco)
+- **IA:** Google Gemini (modelo configurável — veja `GEMINI_MODEL`)
+- **Onde roda:** máquina local, banco local. Não há ambiente publicado.
 
 ---
 
@@ -23,17 +23,21 @@ formato dos commits — e vale igual para pessoas e para agentes de IA.
 
 ---
 
-## Pré-requisitos
+## Como rodar
 
-- Node.js 20+
-- PostgreSQL 17
-- Conta no [Google AI Studio](https://aistudio.google.com/) para obter a chave do Gemini
+### 1. O que você precisa antes
 
-### Banco local (macOS)
+- **Node.js 20+**
+- **PostgreSQL 17** rodando na sua máquina
+- **Uma chave do Google Gemini** — opcional. Sem ela o app funciona de ponta a
+  ponta com conteúdo de demonstração, o que basta para mexer na interface.
 
-O desenvolvimento roda contra um Postgres na própria máquina — depender do
-banco de produção para programar significa que uma instância pausada derruba o
-trabalho de todo mundo.
+> O projeto roda **inteiramente local**: banco na sua máquina, backend na sua
+> máquina, frontend na sua máquina. Não existe ambiente publicado, e depender de
+> um banco remoto para programar significa que uma instância fora do ar derruba
+> o trabalho de todo mundo.
+
+### 2. Banco de dados
 
 ```bash
 brew install postgresql@17
@@ -41,165 +45,186 @@ brew services start postgresql@17
 createdb codecam
 ```
 
-A URL correspondente, em `backend/.env`:
+Em Linux, instale o `postgresql-17` pelo gerenciador da sua distribuição e crie
+o banco com `createdb codecam`.
 
-```env
-DATABASE_URL=postgresql://SEU_USUARIO@localhost:5432/codecam?schema=public
+### 3. Instale as dependências
+
+Um comando, a partir da raiz do repositório:
+
+```bash
+npm run install:all
 ```
 
-Em seguida, aplique o schema e popule com dados de demonstração:
+### 4. Configure o backend
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Abra `backend/.env` e ajuste **duas linhas**:
+
+```env
+# Troque SEU_USUARIO pelo seu usuário do sistema (o mesmo do `whoami`)
+DATABASE_URL=postgresql://SEU_USUARIO@localhost:5432/codecam?schema=public
+
+# Qualquer texto com 32 caracteres ou mais. O servidor recusa subir com menos.
+JWT_SECRET=troque-isto-por-uma-frase-longa-e-aleatoria
+```
+
+`GEMINI_API_KEY` pode ficar como está por enquanto — veja
+[Chave do Gemini](#chave-do-gemini) quando quiser análise de verdade.
+
+### 5. Crie as tabelas e popule
 
 ```bash
 cd backend
-npx prisma migrate deploy
-npm run prisma:seed
+npx prisma migrate deploy   # aplica as migrações que já existem no repositório
+npm run prisma:seed         # dados de demonstração
+cd ..
 ```
 
-O seed cria o usuário **Demo**, com pastas, conteúdos e cartões em estados
+O seed cria o usuário **Demo** com pastas, materiais e cartões em estados
 variados de revisão — o suficiente para o painel e a fila de estudo terem o que
 mostrar sem ninguém precisar estudar à mão antes.
 
----
+> Use `migrate deploy`, não `migrate dev`. As migrações já estão versionadas;
+> `migrate dev` tentaria gerar uma nova e pode zerar o banco.
+>
+> Os dois comandos podem ser repetidos à vontade: `migrate deploy` não faz nada
+> se já estiver tudo aplicado, e o seed recria apenas o usuário Demo, sem tocar
+> em contas ou materiais seus.
 
-## Configuração Local
-
-### 1. Clone o repositório
-
-```bash
-git clone <url-do-repositorio>
-cd codecam
-```
-
-### 2. Configure o Backend
+### 6. Configure o frontend
 
 ```bash
-cd backend
-
-# Instale as dependências
-npm install
-
-# Copie o arquivo de variáveis de ambiente
-cp .env.example .env
+cp frontend/.env.example frontend/.env
 ```
 
-Edite o arquivo `backend/.env` com seus valores:
+**Não preencha nada.** `VITE_API_URL` fica vazia em desenvolvimento: o servidor
+do Vite encaminha `/api` para o backend, o que mantém tudo na mesma origem e
+dispensa configurar endereço e CORS.
 
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/codecam?schema=public
-JWT_SECRET=troque-por-uma-chave-segura-e-longa
-GEMINI_API_KEY=sua-chave-do-gemini-aqui
-PORT=3000
-FRONTEND_URL=http://localhost:5173
-```
-
-Execute as migrations do banco de dados:
-
-```bash
-# Cria o banco e aplica as migrations
-npx prisma migrate dev --name init
-
-# Gera o Prisma Client
-npx prisma generate
-```
-
-Inicie o backend:
-
-```bash
-npm run start:dev
-```
-
-O backend estará disponível em `http://localhost:3000`.
-
-### 3. Configure o Frontend
-
-```bash
-cd ../frontend
-
-# Instale as dependências
-npm install
-
-# Copie o arquivo de variáveis de ambiente
-cp .env.example .env
-```
-
-Edite o arquivo `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
-
-Inicie o frontend:
+### 7. Suba os dois
 
 ```bash
 npm run dev
 ```
 
-O frontend estará disponível em `http://localhost:5173`.
+Sobe backend e frontend juntos. O app abre em **https://localhost:5173**.
+
+> **Por que https?** Porque a câmera exige. `getUserMedia` só existe em contexto
+> seguro; em `http` fora de `localhost` a API nem aparece no navegador. O
+> certificado é autoassinado, então o navegador mostra um aviso na primeira
+> visita — aceite e siga. Para desligar o https (trabalho só em localhost, sem o
+> aviso), use `VITE_DEV_HTTPS=false npm run dev`.
 
 ---
 
-## Variáveis de Ambiente
+## Rodando no celular
+
+É como o app foi feito para ser usado — e é a única forma de testar a câmera de
+verdade.
+
+1. Confirme que o computador e o celular estão **na mesma rede Wi-Fi**
+2. Descubra o IP da máquina:
+
+```bash
+ipconfig getifaddr en0    # macOS
+hostname -I               # Linux
+```
+
+3. No celular, abra `https://SEU_IP:5173` (por exemplo, `https://192.168.0.7:5173`)
+4. Aceite o aviso de certificado
+5. Permita o acesso à câmera quando o navegador pedir
+
+O backend aceita origens de rede privada automaticamente em desenvolvimento, e
+o endereço da API é deduzido da própria página — não há nada a configurar.
+
+---
+
+## Comandos
+
+Todos a partir da raiz do repositório:
+
+| Comando               | O que faz                                     |
+| --------------------- | --------------------------------------------- |
+| `npm run dev`         | Sobe backend e frontend juntos                |
+| `npm run build`       | Compila os dois para produção                 |
+| `npm test`            | Roda os testes dos dois                       |
+| `npm run lint`        | ESLint nos dois                               |
+| `npm run typecheck`   | Checagem de tipos nos dois                    |
+| `npm run format`      | Prettier em tudo                              |
+| `npm run install:all` | Instala dependências da raiz, backend e front |
+
+**Antes de commitar, rode `npm run format` e `npm run lint`.** O projeto não tem
+mais hooks de git fazendo isso automaticamente.
+
+---
+
+## Variáveis de ambiente
 
 ### Backend (`backend/.env`)
 
-| Variável         | Descrição                             | Obrigatório |
-| ---------------- | ------------------------------------- | ----------- |
-| `DATABASE_URL`   | URL de conexão com PostgreSQL         | ✅          |
-| `JWT_SECRET`     | Chave secreta para assinar tokens JWT | ✅          |
-| `GEMINI_API_KEY` | Chave de API do Google Gemini         | ✅          |
-| `PORT`           | Porta do servidor (padrão: 3000)      | ❌          |
-| `FRONTEND_URL`   | URL do frontend para CORS             | ❌          |
+| Variável                  | Obrigatória | Descrição                                               |
+| ------------------------- | ----------- | ------------------------------------------------------- |
+| `DATABASE_URL`            | ✅          | Conexão com o PostgreSQL local                          |
+| `JWT_SECRET`              | ✅          | Segredo para assinar os tokens. Mínimo de 32 caracteres |
+| `GEMINI_API_KEY`          | ❌          | Sem ela, o scan devolve conteúdo de demonstração        |
+| `GEMINI_MODEL`            | ❌          | Modelo da análise. O padrão está no código              |
+| `PORT`                    | ❌          | Porta do backend (padrão: 3000)                         |
+| `FRONTEND_URL`            | ❌          | Origens autorizadas, separadas por vírgula              |
+| `DATABASE_URL_PRODUCTION` | ❌          | Usada só pelos scripts de promoção; o app nunca lê      |
+
+A configuração é validada no boot: **o servidor não sobe com valor inválido** e
+diz exatamente o que está errado.
+
+`GEMINI_MODEL` existe porque o Google aposenta modelos sem aviso — foi o que
+derrubou toda captura de foto uma vez, quando o modelo fixo no código passou a
+responder 404. Se a análise começar a falhar dizendo que está "fora do ar",
+confira a [lista atual](https://ai.google.dev/gemini-api/docs/models) e ajuste
+aqui, sem precisar tocar em código.
 
 ### Frontend (`frontend/.env`)
 
-| Variável       | Descrição           | Obrigatório |
-| -------------- | ------------------- | ----------- |
-| `VITE_API_URL` | URL base do backend | ✅          |
+| Variável         | Obrigatória | Descrição                                                                      |
+| ---------------- | ----------- | ------------------------------------------------------------------------------ |
+| `VITE_API_URL`   | ❌          | **Deixe vazia** em desenvolvimento. Só se usa apontando para uma API publicada |
+| `VITE_DEV_HTTPS` | ❌          | `false` desliga o https do servidor de desenvolvimento                         |
 
 ---
 
-## Obter chave do Google Gemini
+## Chave do Gemini
 
-1. Acesse [Google AI Studio](https://aistudio.google.com/)
-2. Faça login com sua conta Google
-3. Clique em **“Get API key”** no menu lateral
-4. Crie uma nova chave e copie-a
-5. Cole em `backend/.env` como `GEMINI_API_KEY=sua-chave`
+Opcional, mas sem ela o app não analisa foto de verdade — devolve sempre o mesmo
+conteúdo de demonstração.
 
-> ⚠️ **Nunca** exponha a chave do Gemini no frontend. Ela deve permanecer somente no backend.
+1. Acesse o [Google AI Studio](https://aistudio.google.com/)
+2. Faça login e clique em **Get API key**
+3. Crie uma chave e copie
+4. Cole em `backend/.env` como `GEMINI_API_KEY=sua-chave`
+
+> ⚠️ A chave vive **só no backend**. Ela nunca é enviada ao navegador, e a
+> análise da imagem acontece no servidor justamente por isso.
 
 ---
 
 ## Deploy
 
-### Backend no Railway
+**Não há ambiente publicado.** Houve uma tentativa no Railway (backend + banco)
+com frontend na Vercel, mas o banco saiu do ar e a migração foi arquivada — o
+projeto roda local por decisão, não por pendência.
 
-1. Acesse [railway.app](https://railway.app) e faça login
-2. Clique em **New Project** → **Deploy from GitHub repo**
-3. Selecione o repositório e configure o **Root Directory** como `backend`
-4. Adicione um banco PostgreSQL: **New** → **Database** → **PostgreSQL**
-5. Configure as variáveis de ambiente no painel do Railway:
-   - `DATABASE_URL` (copiada automaticamente ao linkar o banco)
-   - `JWT_SECRET`
-   - `GEMINI_API_KEY`
-   - `FRONTEND_URL` (URL do Vercel após o deploy)
-6. Em **Settings** → **Build Command**: `npm install && npx prisma generate && npx prisma migrate deploy && npm run build`
-7. **Start Command**: `npm run start:prod`
+O que ficou pronto para o dia em que isso mudar:
 
-### Frontend no Vercel
+```bash
+cd backend
+npm run db:promote:check   # diagnostica a conexão com o banco de produção
+```
 
-1. Acesse [vercel.com](https://vercel.com) e faça login
-2. Clique em **New Project** → importe do GitHub
-3. Configure o **Root Directory** como `frontend`
-4. Adicione a variável de ambiente:
-   - `VITE_API_URL`: URL do backend no Railway (ex: `https://codecam-backend.up.railway.app`)
-5. Clique em **Deploy**
-
-### Após o deploy
-
-1. Copie a URL do frontend (ex: `https://codecam.vercel.app`)
-2. Atualize a variável `FRONTEND_URL` no Railway com essa URL
-3. Gere o QR Code da URL do frontend usando qualquer gerador (ex: [qr-code-generator.com](https://www.qr-code-generator.com/))
+O script distingue as três falhas que se parecem no cliente e pedem ações
+opostas — DNS que não resolve, TCP que não abre, e handshake sem resposta — e
+imprime o que fazer em cada caso.
 
 ---
 
@@ -240,8 +265,8 @@ codecam/
 | ----------------------------- | ---------------------------- | ------------------------------------------------------- |
 | `POST`                        | `/auth/login`                | Entra pelo nome e devolve o token                       |
 | `POST`                        | `/scan`                      | Analisa a foto; `formats` escolhe o que gerar           |
-| `GET` `POST` `PATCH` `DELETE` | `/folders`                   | CRUD de pastas                                          |
-| `GET` `POST` `DELETE`         | `/contents`                  | Materiais salvos                                        |
+| `GET` `POST` `PATCH` `DELETE` | `/folders` `/folders/:id`    | CRUD de pastas                                          |
+| `GET` `POST` `DELETE`         | `/contents` `/contents/:id`  | Materiais salvos                                        |
 | `GET`                         | `/study/queue`               | Cartões vencidos, do mais atrasado ao menos             |
 | `GET`                         | `/study/contents/:id`        | Todos os cartões de um material                         |
 | `POST`                        | `/study/sessions`            | Abre uma sessão de estudo                               |
@@ -249,6 +274,7 @@ codecam/
 | `POST`                        | `/study/reviews`             | Grava a avaliação e reagenda o cartão (SM-2)            |
 | `GET`                         | `/stats/overview`            | Painel: vencidos, domínio, sequência, acerto, atividade |
 | `GET`                         | `/search?q=`                 | Busca full-text nos materiais                           |
+| `GET`                         | `/health`                    | Sinal de vida do servidor, sem autenticação             |
 
 ## Repetição espaçada
 
@@ -264,10 +290,10 @@ como função pura e coberto por testes. O app oferece três notas — "Não sei
 
 ## Fluxo Principal
 
-1. Acesse o CodeCam pelo QR Code (URL HTTPS)
+1. Abra o CodeCam no celular (veja [Rodando no celular](#rodando-no-celular))
 2. Digite seu nome ou apelido para entrar
 3. _(Opcional)_ Configure acessibilidade em **Ajustes**
-4. Toque em **Escanear agora** na Home
+4. Toque em **Escanear material** na tela inicial
 5. Permita o acesso à câmera e fotografe o material
 6. Aguarde a análise da IA
 7. Visualize título, resumo, tópicos e flashcards
@@ -288,7 +314,7 @@ como função pura e coberto por testes. O app oferece três notas — "Não sei
 | Velocidade de TTS   | Ajustável de 0.5x a 2x                          |
 | Foco visível        | Outline em todos os elementos interativos       |
 | ARIA labels         | Todos os elementos com descrições acessíveis    |
-| Tamanho mínimo      | Botões com 48px de altura mínima                |
+| Alvo de toque       | 44px de altura mínima em todo controle          |
 
 ---
 
