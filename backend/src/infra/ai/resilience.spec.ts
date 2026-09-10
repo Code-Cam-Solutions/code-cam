@@ -1,11 +1,4 @@
-import {
-  attemptBudget,
-  backoffDelay,
-  buildCandidates,
-  isModelUnavailable,
-  isOverloaded,
-  isTransient,
-} from './gemini.client';
+import { attemptBudget, backoffDelay, buildCandidates, isModelUnavailable, isOverloaded, isTimeout, isTransient } from './resilience';
 
 /*
  * O caso que originou este arquivo: `gemini-1.5-flash` estava fixo no código e
@@ -90,25 +83,27 @@ describe('backoffDelay', () => {
 });
 
 describe('buildCandidates', () => {
+  const ALTERNATIVAS = ['modelo-b', 'modelo-c'];
+
   /*
-   * Sobrecarga no Gemini é por modelo: medindo a mesma foto no mesmo minuto,
-   * uns responderam 503 e outros em 3,5s. Por isso a saída para "high demand"
-   * é trocar de modelo, e não insistir no mesmo.
+   * Sobrecarga é por modelo, não por fornecedor: medindo a mesma foto no mesmo
+   * minuto, uns modelos responderam 503 e outros em segundos. Por isso a saída
+   * para "high demand" é trocar de modelo, e não insistir no mesmo.
    */
   it('tenta o modelo configurado antes das alternativas', () => {
-    expect(buildCandidates('gemini-3.5-flash-lite')[0]).toBe('gemini-3.5-flash-lite');
+    expect(buildCandidates('modelo-a', ALTERNATIVAS)[0]).toBe('modelo-a');
   });
 
   it('não repete o modelo configurado quando ele já é uma alternativa', () => {
-    const candidatos = buildCandidates('gemini-3.6-flash');
-    const ocorrencias = candidatos.filter((m) => m === 'gemini-3.6-flash');
+    const candidatos = buildCandidates('modelo-b', ALTERNATIVAS);
+    const ocorrencias = candidatos.filter((m) => m === 'modelo-b');
 
     // Repetir custaria o dobro do tempo em um modelo lotado antes do próximo.
     expect(ocorrencias).toHaveLength(1);
   });
 
   it('sempre oferece mais de um modelo', () => {
-    expect(buildCandidates('gemini-3.5-flash').length).toBeGreaterThan(1);
+    expect(buildCandidates('modelo-a', ALTERNATIVAS).length).toBeGreaterThan(1);
   });
 });
 
@@ -120,20 +115,45 @@ describe('attemptBudget', () => {
    * segundo.
    */
   it('reparte o tempo restante entre os modelos que faltam', () => {
-    expect(attemptBudget(45_000, 3)).toBe(15_000);
-    expect(attemptBudget(30_000, 2)).toBe(15_000);
+    expect(attemptBudget(90_000, 3)).toBe(30_000);
+    expect(attemptBudget(60_000, 2)).toBe(30_000);
   });
 
   it('não deixa uma tentativa abaixo do mínimo útil', () => {
-    // Uma janela de 2s cortaria respostas que levam 3s no caminho feliz.
-    expect(attemptBudget(2_000, 3)).toBe(9_000);
+    // A NVIDIA levou de 18s a 38s na mesma foto: janela curta corta resposta
+    // que estava a caminho.
+    expect(attemptBudget(2_000, 3)).toBe(20_000);
   });
 
   it('não deixa uma tentativa monopolizar o orçamento', () => {
-    expect(attemptBudget(45_000, 1)).toBe(20_000);
+    expect(attemptBudget(300_000, 1)).toBe(45_000);
   });
 
   it('trata o último modelo sem dividir por zero', () => {
-    expect(attemptBudget(10_000, 0)).toBe(10_000);
+    expect(attemptBudget(30_000, 0)).toBe(30_000);
+  });
+});
+
+describe('isTimeout', () => {
+  /*
+   * Separado das demais falhas passageiras por medição: o kimi-k3 estourou 45s,
+   * foi tentado de novo e estourou outros 22s antes de a vez passar ao modelo
+   * seguinte. Insistir num modelo que não respondeu no prazo é gastar a espera
+   * do usuário sem chance de sucesso.
+   */
+  it('reconhece o estouro do próprio relógio', () => {
+    expect(isTimeout('timeout: o modelo não respondeu em 45000ms')).toBe(true);
+    expect(isTimeout('connect ETIMEDOUT 10.0.0.1:443')).toBe(true);
+  });
+
+  it('não confunde com sobrecarga nem com modelo inexistente', () => {
+    expect(isTimeout('503 This model is currently experiencing high demand')).toBe(false);
+    expect(isTimeout('HTTP 404: Not Found')).toBe(false);
+  });
+
+  it('continua sendo uma falha passageira', () => {
+    // O laço de tentativas só continua para falha passageira; se o timeout
+    // saísse dessa categoria, ele passaria a ser lançado na hora.
+    expect(isTransient('timeout: o modelo não respondeu em 45000ms')).toBe(true);
   });
 });

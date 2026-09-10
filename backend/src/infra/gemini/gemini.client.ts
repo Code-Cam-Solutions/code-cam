@@ -2,12 +2,20 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai';
 import type { Env } from '@config/env.validation';
-
-/** Imagem pronta para envio ao modelo. */
-export interface ImagePart {
-  base64: string;
-  mimeType: string;
-}
+import type { ImagePart, VisionProvider } from '@infra/ai/vision-provider';
+import {
+  ATTEMPTS_PER_MODEL,
+  TOTAL_BUDGET_MS,
+  attemptBudget,
+  backoffDelay,
+  buildCandidates,
+  isModelUnavailable,
+  isOverloaded,
+  isTimeout,
+  isTransient,
+  sleep,
+  withTimeout,
+} from '@infra/ai/resilience';
 
 /**
  * Modelos tentados quando o principal está sem capacidade, em ordem.
@@ -24,84 +32,6 @@ export interface ImagePart {
  */
 const FALLBACK_MODELS = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 
-/**
- * Ordem em que os modelos são tentados: o configurado primeiro, as alternativas
- * depois. O `Set` evita tentar duas vezes o mesmo modelo quando o configurado
- * já está na lista de alternativas — o que faria a análise gastar o dobro do
- * tempo em um modelo lotado antes de passar ao próximo.
- */
-export function buildCandidates(configured: string): string[] {
-  return [...new Set([configured, ...FALLBACK_MODELS])];
-}
-
-/**
- * Tentativas por modelo antes de passar ao próximo.
- *
- * Duas, e não mais: falha passageira que não é sobrecarga (rede oscilando)
- * costuma passar na segunda; sobrecarga não passa por insistência, e para ela
- * a saída é o próximo modelo da lista.
- */
-const ATTEMPTS_PER_MODEL = 2;
-
-/** Espera base entre tentativas no mesmo modelo. Dobra a cada uma, com ruído. */
-const RETRY_BASE_MS = 700;
-
-/**
- * Teto de tempo para a análise inteira, somando modelos e tentativas.
- *
- * Existe porque a alternativa é pior que o erro: sem teto, uma sequência de
- * modelos lentos deixa alguém olhando a tela de "analisando" por minutos para
- * receber uma falha no fim. Preferível avisar em 45s.
- */
-const TOTAL_BUDGET_MS = 45_000;
-
-/**
- * Teto de uma única chamada ao modelo.
- *
- * Sem isto, a lista de modelos alternativos era decorativa. Uma chamada que
- * trava não devolve erro: ela fica pendurada até o orçamento inteiro acabar, e
- * aí não sobra tempo para tentar o próximo modelo. Foi exatamente o que os
- * logs mostraram — "tentativa 1" seguida de "orçamento esgotado" no mesmo
- * segundo, com dois modelos livres que nunca chegaram a ser chamados.
- *
- * O valor é dividido pelo que resta de orçamento e de candidatos, para que a
- * fila inteira caiba no tempo total, e limitado por baixo para não cortar uma
- * resposta que estava quase chegando.
- */
-const MIN_ATTEMPT_MS = 9_000;
-const MAX_ATTEMPT_MS = 20_000;
-
-/** Reparte o tempo que sobra entre os modelos que ainda não foram tentados. */
-export function attemptBudget(remainingMs: number, remainingModels: number): number {
-  const share = remainingMs / Math.max(1, remainingModels);
-  return Math.round(Math.min(MAX_ATTEMPT_MS, Math.max(MIN_ATTEMPT_MS, share)));
-}
-
-/**
- * Corre a chamada contra um relógio.
- *
- * O SDK do Gemini não expõe cancelamento, então a promessa perdedora segue
- * viva em segundo plano — o que se ganha é o direito de seguir em frente sem
- * esperá-la, que é o ponto.
- */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`timeout: o modelo não respondeu em ${ms}ms`));
-    }, ms);
-
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err: unknown) => {
-        clearTimeout(timer);
-        reject(err instanceof Error ? err : new Error(String(err)));
-      },
-    );
-  });
-}
 
 /**
  * Fronteira com o Google Gemini.
@@ -112,8 +42,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * fornecedor alternativo) não toca em regra de produto nenhuma.
  */
 @Injectable()
-export class GeminiClient {
+export class GeminiClient implements VisionProvider {
   private readonly logger = new Logger(GeminiClient.name);
+
+  readonly providerName = 'Gemini';
   private readonly genAI: GoogleGenerativeAI | null;
   /** O modelo configurado primeiro, depois as alternativas, sem repetição. */
   private readonly candidates: string[];
@@ -128,7 +60,7 @@ export class GeminiClient {
     // a string 'mock' — deixava um objeto que parecia utilizável e só falhava
     // na primeira chamada de rede.
     this.genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-    this.candidates = buildCandidates(configured);
+    this.candidates = buildCandidates(configured, FALLBACK_MODELS);
   }
 
   /** `false` quando não há chave configurada; o scan cai para dados de demonstração. */
@@ -170,7 +102,9 @@ export class GeminiClient {
           this.logger.warn(`Modelo ${modelName}, tentativa ${attempt}: ${message.slice(0, 120)}`);
 
           // Sobrecarga é por modelo: o próximo da lista pode estar livre agora.
-          if (isOverloaded(message) || isModelUnavailable(message)) break;
+          // Timeout entra aqui junto com sobrecarga: nos três casos o que
+          // resolve é trocar de modelo, não insistir no mesmo.
+          if (isOverloaded(message) || isModelUnavailable(message) || isTimeout(message)) break;
 
           if (attempt === ATTEMPTS_PER_MODEL) break;
 
@@ -282,58 +216,7 @@ export class GeminiClient {
   }
 }
 
-/**
- * Reconhece a falha de "esse modelo não existe (mais) para você".
- *
- * O Google usa redações diferentes para a mesma situação — 404 seco para
- * modelo inexistente, e uma frase explicativa para modelo descontinuado que
- * ainda atende quem já usava.
- */
-export function isModelUnavailable(message: string): boolean {
-  return (
-    message.includes('404') ||
-    message.includes('NOT_FOUND') ||
-    message.includes('is not found') ||
-    message.includes('no longer available') ||
-    message.includes('not supported for generateContent')
-  );
-}
 
-/**
- * Falha do lado do fornecedor que costuma passar sozinha: sobrecarga do
- * modelo, limite de vazão momentâneo, rede instável.
- */
-export function isTransient(message: string): boolean {
-  return (
-    isOverloaded(message) ||
-    message.includes('429') ||
-    message.includes('timeout') ||
-    message.includes('ETIMEDOUT') ||
-    message.includes('ECONNRESET') ||
-    message.includes('fetch failed')
-  );
-}
 
-/** Modelo momentaneamente sem capacidade — a falha mais comum na prática. */
-export function isOverloaded(message: string): boolean {
-  return (
-    message.includes('503') ||
-    message.includes('high demand') ||
-    message.includes('overloaded') ||
-    message.includes('UNAVAILABLE')
-  );
-}
 
-/**
- * Espera exponencial com ruído. O ruído importa: sem ele, várias capturas que
- * falharam juntas voltariam exatamente no mesmo instante e manteriam a
- * sobrecarga que causou a falha.
- */
-export function backoffDelay(attempt: number, random: () => number = Math.random): number {
-  const exponential = RETRY_BASE_MS * 2 ** (attempt - 1);
-  return Math.round(exponential * (0.75 + random() * 0.5));
-}
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
