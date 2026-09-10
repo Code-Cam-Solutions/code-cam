@@ -53,7 +53,7 @@ npm run typecheck && npm run lint && npm test
 ```
 backend/src/
   config/        validação de env, política de CORS
-  infra/         fronteiras com o mundo externo (Prisma, Gemini)
+  infra/         fronteiras externas: Prisma, e os fornecedores de IA em ai/
   modules/       uma pasta por domínio: controller + service + dto + spec
   common/        tipos e decorators compartilhados
 
@@ -68,9 +68,10 @@ frontend/src/
 Duas regras de dependência:
 
 - **Feature não importa de feature.** O que duas precisam vai para `shared/`.
-- **Módulo de domínio não conhece SDK de fornecedor.** Quem fala com Gemini é
-  `infra/gemini`; o módulo `scan` conhece a interface, não o SDK. Trocar de
-  modelo (ou de fornecedor) não deve tocar em regra de produto nenhuma.
+- **Módulo de domínio não conhece fornecedor.** O `scan` depende de
+  `VisionProvider` (em `infra/ai/`), não de um cliente concreto. NVIDIA e Gemini
+  implementam esse contrato, e `AI_PROVIDER` escolhe qual atende — trocar de
+  fornecedor é editar o `.env`, não refatorar.
 
 ---
 

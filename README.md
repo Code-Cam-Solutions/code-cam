@@ -10,7 +10,7 @@ O CodeCam permite que estudantes fotografem materiais de estudo (lousas, caderno
 
 - **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS v4
 - **Backend:** NestJS + Prisma + PostgreSQL
-- **IA:** Google Gemini (modelo configurável — veja `GEMINI_MODEL`)
+- **IA:** NVIDIA NIM (`moonshotai/kimi-k3`), com o Google Gemini como alternativa
 - **Onde roda:** máquina local, banco local. Não há ambiente publicado.
 
 ---
@@ -29,8 +29,8 @@ formato dos commits — e vale igual para pessoas e para agentes de IA.
 
 - **Node.js 20+**
 - **PostgreSQL 17** rodando na sua máquina
-- **Uma chave do Google Gemini** — opcional. Sem ela o app funciona de ponta a
-  ponta com conteúdo de demonstração, o que basta para mexer na interface.
+- **Uma chave da NVIDIA** — opcional. Sem ela o app funciona de ponta a ponta
+  com conteúdo de demonstração, o que basta para mexer na interface.
 
 > O projeto roda **inteiramente local**: banco na sua máquina, backend na sua
 > máquina, frontend na sua máquina. Não existe ambiente publicado, e depender de
@@ -72,8 +72,8 @@ DATABASE_URL=postgresql://SEU_USUARIO@localhost:5432/codecam?schema=public
 JWT_SECRET=troque-isto-por-uma-frase-longa-e-aleatoria
 ```
 
-`GEMINI_API_KEY` pode ficar como está por enquanto — veja
-[Chave do Gemini](#chave-do-gemini) quando quiser análise de verdade.
+`NVIDIA_API_KEY` pode ficar vazia por enquanto — veja
+[Chave da IA](#chave-da-ia) quando quiser análise de verdade.
 
 ### 5. Crie as tabelas e popule
 
@@ -178,11 +178,11 @@ mais hooks de git fazendo isso automaticamente.
 A configuração é validada no boot: **o servidor não sobe com valor inválido** e
 diz exatamente o que está errado.
 
-`GEMINI_MODEL` existe porque o Google aposenta modelos sem aviso — foi o que
-derrubou toda captura de foto uma vez, quando o modelo fixo no código passou a
-responder 404. Se a análise começar a falhar dizendo que está "fora do ar",
-confira a [lista atual](https://ai.google.dev/gemini-api/docs/models) e ajuste
-aqui, sem precisar tocar em código.
+O modelo é configurável nos dois fornecedores porque **modelos somem sem
+aviso**: foi o que derrubou toda captura de foto uma vez, quando o
+`gemini-1.5-flash` fixo no código passou a responder 404. Se a análise começar
+a falhar dizendo que está "fora do ar", troque o modelo no `.env` — sem tocar
+em código.
 
 ### Frontend (`frontend/.env`)
 
@@ -193,18 +193,34 @@ aqui, sem precisar tocar em código.
 
 ---
 
-## Chave do Gemini
+## Chave da IA
 
 Opcional, mas sem ela o app não analisa foto de verdade — devolve sempre o mesmo
 conteúdo de demonstração.
 
-1. Acesse o [Google AI Studio](https://aistudio.google.com/)
-2. Faça login e clique em **Get API key**
-3. Crie uma chave e copie
-4. Cole em `backend/.env` como `GEMINI_API_KEY=sua-chave`
+**NVIDIA (padrão):**
+
+1. Acesse [build.nvidia.com](https://build.nvidia.com) e entre
+2. Escolha um modelo com visão e clique em **Get API Key**
+3. Copie a chave (começa com `nvapi-`)
+4. Cole em `backend/.env` como `NVIDIA_API_KEY=sua-chave`
+
+**Google Gemini (alternativa):** pegue a chave no
+[Google AI Studio](https://aistudio.google.com/), cole em `GEMINI_API_KEY` e
+troque `AI_PROVIDER=gemini`.
 
 > ⚠️ A chave vive **só no backend**. Ela nunca é enviada ao navegador, e a
 > análise da imagem acontece no servidor justamente por isso.
+
+### Quanto tempo leva
+
+A análise pela NVIDIA leva de **18 a 40 segundos** — a infraestrutura é gratuita
+e compartilhada, e a latência varia bastante entre uma chamada e outra. O Gemini
+respondia em 2 a 6 segundos. É o preço de não depender de cota paga, e a tela de
+processamento foi feita para tornar essa espera suportável.
+
+Se um modelo estiver sobrecarregado, o app tenta o próximo da lista sozinho, com
+teto de 90 segundos para a análise inteira.
 
 ---
 

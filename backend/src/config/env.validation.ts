@@ -15,6 +15,12 @@ export interface Env {
   GEMINI_API_KEY?: string;
   /** Modelo usado na análise das fotos. Configurável para sobreviver a aposentadorias. */
   GEMINI_MODEL: string;
+  /** Qual fornecedor de visão atende o scan. */
+  AI_PROVIDER: 'nvidia' | 'gemini';
+  /** Ausente em desenvolvimento: sem ela o scan devolve dados de demonstração. */
+  NVIDIA_API_KEY?: string;
+  /** Modelo da NVIDIA usado na análise. */
+  NVIDIA_MODEL: string;
   PORT: number;
   /** Origens autorizadas a chamar a API, já separadas por vírgula. */
   FRONTEND_URL: string[];
@@ -37,6 +43,18 @@ const MIN_SECRET_LENGTH = 32;
  * esperar por um deploy.
  */
 const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+
+/*
+ * Padrões da NVIDIA. O kimi-k3 foi escolhido por medição, não por catálogo:
+ * com a mesma foto de lousa ele transcreveu o texto inteiro sem erro em 18s e
+ * devolveu JSON válido, enquanto o llama-3.2-11b levou 39s e obedeceu mal à
+ * instrução de quantidade de flashcards.
+ */
+const DEFAULT_NVIDIA_MODEL = 'moonshotai/kimi-k3';
+
+/** Fornecedores aceitos em AI_PROVIDER. */
+const PROVIDERS = ['nvidia', 'gemini'] as const;
+type Provider = (typeof PROVIDERS)[number];
 
 class EnvError extends Error {
   constructor(problems: string[]) {
@@ -92,14 +110,29 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     problems.push('PORT precisa ser um número de porta válido.');
   }
 
+  const provider = (readString(raw.AI_PROVIDER) || 'nvidia') as Provider;
+  if (!PROVIDERS.includes(provider)) {
+    problems.push(`AI_PROVIDER inválido: "${provider}". Use ${PROVIDERS.join(' ou ')}.`);
+  }
+
+  // Um único ponto de saída: o boot mostra tudo que está errado de uma vez, em
+  // vez de fazer quem configura descobrir um problema por reinício.
   if (problems.length > 0) {
     throw new EnvError(problems);
   }
 
   const geminiApiKey = readString(raw.GEMINI_API_KEY);
-  if (!geminiApiKey) {
+  const nvidiaApiKey = readString(raw.NVIDIA_API_KEY);
+
+  /*
+   * O aviso é sobre a chave do fornecedor em uso, não sobre as duas. Avisar da
+   * chave do Gemini ausente enquanto a NVIDIA atende seria ruído que ensina a
+   * ignorar o log.
+   */
+  const chaveEmUso = provider === 'nvidia' ? nvidiaApiKey : geminiApiKey;
+  if (!chaveEmUso) {
     new Logger('Config').warn(
-      'GEMINI_API_KEY ausente — o scan vai devolver conteúdo de demonstração.',
+      `${provider.toUpperCase()}_API_KEY ausente — o scan vai devolver conteúdo de demonstração.`,
     );
   }
 
@@ -108,6 +141,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     JWT_SECRET: jwtSecret,
     GEMINI_API_KEY: geminiApiKey || undefined,
     GEMINI_MODEL: readString(raw.GEMINI_MODEL) || DEFAULT_GEMINI_MODEL,
+    AI_PROVIDER: provider,
+    NVIDIA_API_KEY: nvidiaApiKey || undefined,
+    NVIDIA_MODEL: readString(raw.NVIDIA_MODEL) || DEFAULT_NVIDIA_MODEL,
     PORT: port,
     FRONTEND_URL: (readString(raw.FRONTEND_URL) || 'http://localhost:5173')
       .split(',')

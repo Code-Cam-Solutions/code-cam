@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { GeminiClient } from '@infra/gemini/gemini.client';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { VISION_PROVIDER, type VisionProvider } from '@infra/ai/vision-provider';
 import { buildScanPrompt } from './scan.prompt';
 import { parseScanResponse, ScanParseError } from './scan.parser';
 import { STUDY_FORMATS, type ScanResult, type StudyFormat } from './scan.types';
@@ -11,7 +11,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export class ScanService {
   private readonly logger = new Logger(ScanService.name);
 
-  constructor(private readonly gemini: GeminiClient) {}
+  constructor(@Inject(VISION_PROVIDER) private readonly vision: VisionProvider) {}
 
   async analyzeImage(
     file: Express.Multer.File | undefined,
@@ -21,12 +21,12 @@ export class ScanService {
 
     // Sem chave de API o app continua percorrível de ponta a ponta — o que
     // permite desenvolver a interface e demonstrar o fluxo sem gastar cota.
-    if (!this.gemini.isConfigured) {
+    if (!this.vision.isConfigured) {
       this.logger.debug('Sem GEMINI_API_KEY: devolvendo conteúdo de demonstração.');
       return demoResult();
     }
 
-    const text = await this.gemini.describeImage(buildScanPrompt(formats), {
+    const text = await this.vision.describeImage(buildScanPrompt(formats), {
       base64: file.buffer.toString('base64'),
       mimeType: file.mimetype,
     });

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { GeminiModule } from '@infra/gemini/gemini.module';
+import { AiModule } from '@infra/ai/ai.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { ScanController } from './scan.controller';
 import { ScanService } from './scan.service';
 
 @Module({
-  imports: [GeminiModule, AuthModule],
+  imports: [AiModule, AuthModule],
   controllers: [ScanController],
   providers: [ScanService],
 })
