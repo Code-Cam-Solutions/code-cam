@@ -166,15 +166,14 @@ mais hooks de git fazendo isso automaticamente.
 
 ### Backend (`backend/.env`)
 
-| Variável                  | Obrigatória | Descrição                                               |
-| ------------------------- | ----------- | ------------------------------------------------------- |
-| `DATABASE_URL`            | ✅          | Conexão com o PostgreSQL local                          |
-| `JWT_SECRET`              | ✅          | Segredo para assinar os tokens. Mínimo de 32 caracteres |
-| `GEMINI_API_KEY`          | ❌          | Sem ela, o scan devolve conteúdo de demonstração        |
-| `GEMINI_MODEL`            | ❌          | Modelo da análise. O padrão está no código              |
-| `PORT`                    | ❌          | Porta do backend (padrão: 3000)                         |
-| `FRONTEND_URL`            | ❌          | Origens autorizadas, separadas por vírgula              |
-| `DATABASE_URL_PRODUCTION` | ❌          | Usada só pelos scripts de promoção; o app nunca lê      |
+| Variável         | Obrigatória | Descrição                                               |
+| ---------------- | ----------- | ------------------------------------------------------- |
+| `DATABASE_URL`   | ✅          | Conexão com o PostgreSQL local                          |
+| `JWT_SECRET`     | ✅          | Segredo para assinar os tokens. Mínimo de 32 caracteres |
+| `GEMINI_API_KEY` | ❌          | Sem ela, o scan devolve conteúdo de demonstração        |
+| `GEMINI_MODEL`   | ❌          | Modelo da análise. O padrão está no código              |
+| `PORT`           | ❌          | Porta do backend (padrão: 3000)                         |
+| `FRONTEND_URL`   | ❌          | Origens autorizadas, separadas por vírgula              |
 
 A configuração é validada no boot: **o servidor não sobe com valor inválido** e
 diz exatamente o que está errado.
@@ -211,20 +210,15 @@ conteúdo de demonstração.
 
 ## Deploy
 
-**Não há ambiente publicado.** Houve uma tentativa no Railway (backend + banco)
-com frontend na Vercel, mas o banco saiu do ar e a migração foi arquivada — o
-projeto roda local por decisão, não por pendência.
+**Não há ambiente publicado, e isso é uma decisão.** Houve uma tentativa no
+Railway com frontend na Vercel; o banco saiu do ar e a migração foi arquivada.
+O projeto roda local — banco, backend e frontend na máquina de quem programa.
 
-O que ficou pronto para o dia em que isso mudar:
-
-```bash
-cd backend
-npm run db:promote:check   # diagnostica a conexão com o banco de produção
-```
-
-O script distingue as três falhas que se parecem no cliente e pedem ações
-opostas — DNS que não resolve, TCP que não abre, e handshake sem resposta — e
-imprime o que fazer em cada caso.
+Se um dia isso mudar, o backend é um NestJS comum (`npm run build` e
+`npm run start:prod`, com `DATABASE_URL` apontando para o banco de destino) e o
+frontend é um build estático do Vite que precisa de duas coisas no servidor:
+reescrever todas as rotas para `index.html`, por ser uma SPA, e receber
+`VITE_API_URL` apontando para a API publicada.
 
 ---
 

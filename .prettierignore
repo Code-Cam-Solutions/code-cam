@@ -2,7 +2,6 @@ node_modules/
 dist/
 build/
 coverage/
-.husky/
 package-lock.json
 *.min.js
 *.min.css

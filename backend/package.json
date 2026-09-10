@@ -24,10 +24,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "lint:staged": "eslint --fix --no-warn-ignored",
-    "db:promote:check": "node prisma/promote-to-production.mjs --check",
-    "db:promote": "node prisma/promote-to-production.mjs --migrate",
-    "db:promote:with-data": "node prisma/promote-to-production.mjs --copy-data"
+    "lint:staged": "eslint --fix --no-warn-ignored"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

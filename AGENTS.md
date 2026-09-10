@@ -174,8 +174,13 @@ PR — é ele que impede o retorno.
 <tipo>(<escopo>): <descrição em minúscula, sem ponto final>
 ```
 
-Tipos e escopos válidos estão em `commitlint.config.mjs`. Não há hook validando
-automaticamente — conferir o formato é responsabilidade de quem commita.
+**Tipos:** `feat`, `fix`, `refactor`, `perf`, `style`, `docs`, `test`, `build`,
+`ci`, `chore`, `revert`.
+
+**Escopos:** `auth`, `scan`, `contents`, `folders`, `study`, `stats`, `search`,
+`design-system`, `ui`, `a11y`, `pwa`, `api`, `db`, `config`, `deps`, `release`.
+
+Nada valida isso automaticamente — conferir o formato é de quem commita.
 
 ```
 feat(study): adiciona algoritmo de repetição espaçada SM-2
@@ -219,13 +224,12 @@ docs/o-que-documenta
 
 ## Banco de dados
 
-O desenvolvimento usa um PostgreSQL local. O de produção (Railway) está fora do
-ar desde 02/09/2026 — `npm --prefix backend run db:promote:check` diagnostica e
-diz o que fazer.
+O desenvolvimento usa um PostgreSQL local, e é o único banco do projeto: não há
+ambiente publicado.
 
-Migração é sempre versionada (`prisma migrate dev`). Migração escrita à mão
-precisa ser ensaiada em banco descartável antes de tocar dado real; há um
-exemplo em `backend/prisma/verify-migration.mjs`.
+Migração é sempre versionada (`prisma migrate dev`). Migração escrita à mão —
+as que o Prisma não gera sem apagar dados — precisa ser ensaiada em um banco
+descartável antes de tocar dado real.
 
 ---
 
