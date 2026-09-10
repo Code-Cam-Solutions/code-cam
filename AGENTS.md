@@ -115,7 +115,7 @@ próxima pessoa "arruma" isso de volta para o bug.
 - **Erro para o usuário é em português e acionável.** "Erro 500" não é
   mensagem. "A câmera está sendo usada por outro aplicativo. Feche a outra aba
   e tente de novo" é.
-- Formatação é do Prettier, e o hook de pre-commit resolve. Não discuta vírgula.
+- Formatação é do Prettier: rode `npm run format` antes de commitar. Não discuta vírgula.
 
 ---
 
@@ -174,8 +174,8 @@ PR — é ele que impede o retorno.
 <tipo>(<escopo>): <descrição em minúscula, sem ponto final>
 ```
 
-Tipos e escopos válidos estão em `commitlint.config.mjs`, e o hook de
-`commit-msg` recusa o que não bate.
+Tipos e escopos válidos estão em `commitlint.config.mjs`. Não há hook validando
+automaticamente — conferir o formato é responsabilidade de quem commita.
 
 ```
 feat(study): adiciona algoritmo de repetição espaçada SM-2
