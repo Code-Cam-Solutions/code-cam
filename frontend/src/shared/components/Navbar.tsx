@@ -6,6 +6,11 @@ interface NavbarProps {
   title?: string;
   showBack?: boolean;
   backTo?: string;
+  /**
+   * Voltar para um destino que precisa levar estado junto — o que uma rota em
+   * texto não consegue expressar. Tem precedência sobre `backTo`.
+   */
+  onBack?: () => void;
 }
 
 /** Botão circular de 44px, o alvo de toque mínimo confortável em celular. */
@@ -14,13 +19,15 @@ const ICON_BUTTON = cn(
   "transition-colors duration-150 hover:bg-surface-sunken hover:text-text",
 );
 
-export function Navbar({ title, showBack = false, backTo }: NavbarProps) {
+export function Navbar({ title, showBack = false, backTo, onBack }: NavbarProps) {
   const navigate = useNavigate();
 
   function handleBack() {
     // As sobrecargas de `navigate` para destino e para delta são distintas, e
     // uma união `string | -1` não satisfaz nenhuma das duas.
-    if (backTo !== undefined) {
+    if (onBack !== undefined) {
+      onBack();
+    } else if (backTo !== undefined) {
       void navigate(backTo);
     } else {
       void navigate(-1);

@@ -137,9 +137,17 @@ function nextReviewLabel(days: number): string {
  */
 function SummaryPeek({
   contentId,
+  inline,
   variant = "pill",
 }: {
-  contentId: string;
+  /** Material salvo: o conteúdo é buscado na abertura. */
+  contentId?: string;
+  /**
+   * Material recém-analisado, ainda não salvo. Não há o que buscar — o resumo
+   * e os tópicos já estão em memória, e sem isto a consulta ficava indisponível
+   * justamente em quem acabou de escanear.
+   */
+  inline?: { summary: string; topics: string[] };
   /**
    * `pill` cabe na barra de progresso sem competir com o cartão; `button`
    * ocupa a largura no fim da sessão, onde consultar o material deixa de ser
@@ -154,7 +162,7 @@ function SummaryPeek({
 
   async function handleOpen() {
     setOpen(true);
-    if (content || loading) return;
+    if (inline || content || loading || contentId === undefined) return;
 
     setLoading(true);
     setFailed(false);
@@ -215,32 +223,39 @@ function SummaryPeek({
           </p>
         )}
 
-        {content && !loading && (
-          <div className="flex flex-col gap-4">
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-text-subtle uppercase">Resumo</h3>
-                <TTSButton text={content.summary} label="resumo" />
-              </div>
-              <ReadableProse text={content.summary} />
-            </div>
+        {(() => {
+          const dados = inline ?? content;
+          if (!dados || loading) return null;
 
-            {content.topics.length > 0 && (
+          return (
+            <div className="flex flex-col gap-4">
               <div>
-                <h3 className="mb-2 text-sm font-semibold text-text-subtle uppercase">Tópicos</h3>
-                <ul className="flex flex-wrap gap-2">
-                  {content.topics.map((topic) => (
-                    <li key={topic}>
-                      <Badge tone="accent" className="max-w-full whitespace-normal">
-                        {topic}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-text-subtle uppercase">Resumo</h3>
+                  <TTSButton text={dados.summary} label="resumo" />
+                </div>
+                <ReadableProse text={dados.summary} />
               </div>
-            )}
-          </div>
-        )}
+
+              {dados.topics.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-text-subtle uppercase">
+                    Tópicos
+                  </h3>
+                  <ul className="flex flex-wrap gap-2">
+                    {dados.topics.map((topic) => (
+                      <li key={topic}>
+                        <Badge tone="accent" className="max-w-full whitespace-normal">
+                          {topic}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <Button variant="secondary" fullWidth className="mt-5" onClick={() => setOpen(false)}>
           Voltar ao cartão
@@ -260,7 +275,7 @@ const EMPTY_TALLY: Tally = { AGAIN: 0, HARD: 0, GOOD: 0 };
 
 export function StudyPage() {
   const navigate = useNavigate();
-  const { draftCards, title } = useRouteState<"/flashcards">();
+  const { draftCards, title, result, formats, thumbnail } = useRouteState<"/flashcards">();
 
   // Modo prática: os cartões vieram da tela de resultado e ainda não existem no
   // banco. Nada é gravado, e a tela diz isso em vez de fingir que agendou algo.
@@ -287,7 +302,26 @@ export function StudyPage() {
    * revisão do dia, ao início. Nunca `navigate(-1)`: o histórico depende do
    * caminho percorrido e mandava a pessoa para telas sem relação nenhuma.
    */
+  /**
+   * Como se sai desta tela.
+   *
+   * Três origens, três destinos. Estudando um material salvo, volta-se a ele.
+   * Praticando cartões recém-gerados, volta-se ao resultado da análise — e o
+   * estado precisa ir junto, senão a análise se perde e o material nunca chega
+   * a ser salvo em pasta nenhuma, que era o beco sem saída aqui. Na revisão do
+   * dia, o início.
+   */
+  const voltarParaOResultado = result !== undefined;
+
   const backTo = contentId ? `/content/${contentId}` : "/";
+
+  const irParaOrigem = useCallback(() => {
+    if (voltarParaOResultado) {
+      void navigate("/result", { state: { result, formats, thumbnail }, replace: true });
+      return;
+    }
+    void navigate(backTo);
+  }, [voltarParaOResultado, navigate, result, formats, thumbnail, backTo]);
 
   const aid = useReadingAid();
 
@@ -378,7 +412,7 @@ export function StudyPage() {
   // ─── Carregando ──────────────────────────────────────────────────────────
   if (!isPractice && queue.status === "loading" && !queue.data) {
     return (
-      <Shell title="Revisão" backTo={backTo}>
+      <Shell title="Revisão" onBack={irParaOrigem}>
         <div className="flex flex-col gap-4 pt-4">
           <Skeleton className="h-2 rounded-full" />
           <Skeleton className="h-[clamp(15rem,44vh,21rem)] rounded-2xl" />
@@ -389,7 +423,7 @@ export function StudyPage() {
 
   if (!isPractice && queue.status === "error") {
     return (
-      <Shell title="Revisão" backTo={backTo}>
+      <Shell title="Revisão" onBack={irParaOrigem}>
         <EmptyState
           className="animate-rise-in"
           icon={<RefreshCcw size={26} />}
@@ -404,7 +438,7 @@ export function StudyPage() {
   // ─── Nada a estudar ──────────────────────────────────────────────────────
   if (total === 0 || !current) {
     return (
-      <Shell title="Revisão" backTo={backTo}>
+      <Shell title="Revisão" onBack={irParaOrigem}>
         <EmptyState
           className="animate-rise-in"
           icon={<Check size={26} />}
@@ -437,16 +471,24 @@ export function StudyPage() {
         sessionId={sessionId}
         onRestart={handleRestart}
         contentId={contentId}
-        onLeave={() => void navigate(backTo)}
+        draftSummary={result ? { summary: result.summary, topics: result.topics } : undefined}
+        onLeave={irParaOrigem}
       />
     );
   }
 
   // ─── Estudo ──────────────────────────────────────────────────────────────
   return (
-    <Shell title={studyTitle} backTo={backTo}>
+    <Shell title={studyTitle} onBack={irParaOrigem}>
       <div className="pt-4">
         <Progress value={index} max={total} label={`Cartão ${index + 1} de ${total}`} />
+
+        {isPractice && result && (
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-sm font-medium text-text-muted">{result.title}</p>
+            <SummaryPeek inline={{ summary: result.summary, topics: result.topics }} />
+          </div>
+        )}
 
         {isPersisted(current) && (
           /* Título à esquerda, consulta à direita: centralizados, os dois
@@ -615,15 +657,17 @@ export function StudyPage() {
 function Shell({
   title,
   backTo,
+  onBack,
   children,
 }: {
   title: string;
   backTo?: string;
+  onBack?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
-      <Navbar title={title} showBack backTo={backTo} />
+      <Navbar title={title} showBack backTo={backTo} onBack={onBack} />
       <main
         id="main-content"
         className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
@@ -640,6 +684,7 @@ function SessionSummaryView({
   isPractice,
   sessionId,
   contentId,
+  draftSummary,
   onRestart,
   onLeave,
 }: {
@@ -649,6 +694,8 @@ function SessionSummaryView({
   sessionId: string | null;
   onRestart: () => void;
   contentId?: string;
+  /** Resumo e tópicos do material recém-analisado, ainda não salvo. */
+  draftSummary?: { summary: string; topics: string[] };
   onLeave: () => void;
 }) {
   const remembered = tally.HARD + tally.GOOD;
@@ -666,7 +713,7 @@ function SessionSummaryView({
   const summaryText = `Sessão concluída. Você lembrou ${remembered} de ${total} cartões, ${accuracy} por cento. ${grade.text}`;
 
   return (
-    <Shell title="Resultado" backTo={contentId ? `/content/${contentId}` : "/"}>
+    <Shell title="Resultado" onBack={onLeave}>
       <div className="flex flex-1 flex-col justify-center py-8">
         <div className="animate-rise-in text-center">
           <span
@@ -731,6 +778,7 @@ function SessionSummaryView({
               consulta rende mais — e antes a única forma de chegar lá era sair
               da tela e navegar de volta. */}
           {contentId !== undefined && <SummaryPeek contentId={contentId} variant="button" />}
+          {draftSummary !== undefined && <SummaryPeek inline={draftSummary} variant="button" />}
           {/* O rótulo diz o destino real. "Voltar ao início" depois de estudar
               um material específico era mentira: a pessoa quer voltar para o
               material, e era para lá que ela precisava de um caminho. */}
@@ -738,10 +786,20 @@ function SessionSummaryView({
             variant="secondary"
             fullWidth
             size="lg"
-            icon={contentId ? <ArrowLeft size={18} /> : <Home size={18} />}
+            icon={contentId || draftSummary ? <ArrowLeft size={18} /> : <Home size={18} />}
             onClick={onLeave}
           >
-            {contentId ? "Voltar ao material" : "Voltar ao início"}
+            {/*
+              Praticando cartões recém-gerados, o destino é o resultado da
+              análise — onde o material ainda pode ser salvo em uma pasta. Era
+              o caminho que faltava: entrar nos flashcards significava perder a
+              análise e não ter mais como guardá-la.
+            */}
+            {draftSummary
+              ? "Voltar ao resumo e salvar"
+              : contentId
+                ? "Voltar ao material"
+                : "Voltar ao início"}
           </Button>
         </div>
       </div>

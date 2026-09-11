@@ -119,7 +119,7 @@ function RawTextSection({ text }: { text: string }) {
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { result, thumbnail } = useRouteState<"/result">();
+  const { result, thumbnail, formats } = useRouteState<"/result">();
   const { toasts, addToast, removeToast } = useToast();
 
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -312,7 +312,16 @@ export function ResultPage() {
               icon={<Play size={18} />}
               onClick={() =>
                 void navigate("/flashcards", {
-                  state: { draftCards: result.flashcards, title: result.title },
+                  // O resultado inteiro vai junto para que a tela de estudo
+                  // saiba voltar para cá — com o resumo, os tópicos e o botão
+                  // de salvar ainda disponíveis.
+                  state: {
+                    draftCards: result.flashcards,
+                    title: result.title,
+                    result,
+                    formats,
+                    thumbnail,
+                  },
                 })
               }
               aria-label={`Iniciar sessão com ${flashcardCount} flashcards`}
