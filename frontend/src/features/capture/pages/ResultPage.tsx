@@ -20,6 +20,7 @@ import { Badge, Button, Card, Dialog, EmptyState, Input, SkeletonList, cn } from
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
 import { TTSButton } from "@/shared/components/TTSButton";
+import { MarkedItem, ReadableProse } from "@/shared/components/ReadingAid";
 import { ToastContainer, useToast } from "@/shared/components/Toast";
 
 /**
@@ -260,7 +261,7 @@ export function ResultPage() {
               title="Resumo"
               action={<TTSButton text={result.summary} label="resumo" />}
             />
-            <p className="text-base leading-relaxed text-text">{result.summary}</p>
+            <ReadableProse text={result.summary} />
           </Card>
 
           {/* Tópicos */}
@@ -270,9 +271,14 @@ export function ResultPage() {
               <ul className="flex flex-wrap gap-2" aria-label="Lista de tópicos">
                 {result.topics.map((topic, i) => (
                   <li key={i} className="flex items-center gap-1">
-                    <Badge tone="accent" className="max-w-full whitespace-normal">
-                      {topic}
-                    </Badge>
+                    {/* O marcador fica à esquerda do selo, fora da linha do
+                        texto — ponto de retorno para o olho, sem interromper
+                        a leitura da frase. */}
+                    <MarkedItem kind="topic">
+                      <Badge tone="accent" className="max-w-full whitespace-normal">
+                        {topic}
+                      </Badge>
+                    </MarkedItem>
                     <TTSButton text={topic} label={`tópico ${i + 1}`} />
                   </li>
                 ))}
