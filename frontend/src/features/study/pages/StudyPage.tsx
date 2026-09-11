@@ -39,6 +39,8 @@ import {
 } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { TTSButton } from "@/shared/components/TTSButton";
+import { ReadableProse, ReadingMark } from "@/shared/components/ReadingAid";
+import { useReadingAid } from "@/shared/hooks/useReadingAid";
 import { useAsync } from "@/shared/hooks/useAsync";
 import { useRouteState } from "@/shared/lib/navigation";
 
@@ -220,7 +222,7 @@ function SummaryPeek({
                 <h3 className="text-sm font-semibold text-text-subtle uppercase">Resumo</h3>
                 <TTSButton text={content.summary} label="resumo" />
               </div>
-              <p className="text-base leading-relaxed text-text">{content.summary}</p>
+              <ReadableProse text={content.summary} />
             </div>
 
             {content.topics.length > 0 && (
@@ -286,6 +288,8 @@ export function StudyPage() {
    * caminho percorrido e mandava a pessoa para telas sem relação nenhuma.
    */
   const backTo = contentId ? `/content/${contentId}` : "/";
+
+  const aid = useReadingAid();
 
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -504,7 +508,11 @@ export function StudyPage() {
                 aria-hidden="true"
               />
 
-              <span className="relative rounded-full border border-accent-contrast/30 bg-accent-contrast/10 px-3 py-1 text-2xs font-semibold tracking-wider uppercase">
+              {/* Com o apoio de leitura ligado, o lado do cartão passa a ter
+                  uma marca própria: saber se está vendo a pergunta ou a
+                  resposta deixa de depender só de ler o rótulo. */}
+              <span className="relative flex items-center gap-1.5 rounded-full border border-accent-contrast/30 bg-accent-contrast/10 px-3 py-1 text-2xs font-semibold tracking-wider uppercase">
+                {aid && <ReadingMark kind="question" className="text-accent-contrast" />}
                 Pergunta
               </span>
               <span className="relative text-xl leading-snug font-semibold text-balance">
@@ -528,6 +536,7 @@ export function StudyPage() {
               />
 
               <Badge tone="accent" className="relative">
+                {aid && <ReadingMark kind="answer" />}
                 Resposta
               </Badge>
               <span className="relative text-lg leading-relaxed text-balance text-text">

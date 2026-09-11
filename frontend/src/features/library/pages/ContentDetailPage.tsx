@@ -18,6 +18,7 @@ import { Badge, Button, Card, EmptyState, SkeletonList, cn } from "@/design-syst
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
 import { TTSButton } from "@/shared/components/TTSButton";
+import { MarkedItem, ReadableProse } from "@/shared/components/ReadingAid";
 import { useEscapeKey } from "@/shared/hooks/useEscapeKey";
 
 function formatDate(iso: string) {
@@ -315,7 +316,7 @@ export function ContentDetailPage() {
               title="Resumo"
               action={<TTSButton text={content.summary} label="resumo" />}
             />
-            <p className="text-base leading-relaxed text-text">{content.summary}</p>
+            <ReadableProse text={content.summary} />
           </Card>
 
           {/* Tópicos */}
@@ -325,9 +326,14 @@ export function ContentDetailPage() {
               <ul className="flex flex-wrap gap-2">
                 {content.topics.map((topic, i) => (
                   <li key={i} className="flex items-center gap-1">
-                    <Badge tone="accent" className="max-w-full whitespace-normal">
-                      {topic}
-                    </Badge>
+                    {/* O marcador fica à esquerda do selo, fora da linha do
+                        texto — ponto de retorno para o olho, sem interromper
+                        a leitura da frase. */}
+                    <MarkedItem kind="topic">
+                      <Badge tone="accent" className="max-w-full whitespace-normal">
+                        {topic}
+                      </Badge>
+                    </MarkedItem>
                     <TTSButton text={topic} label={`tópico ${i + 1}`} />
                   </li>
                 ))}
