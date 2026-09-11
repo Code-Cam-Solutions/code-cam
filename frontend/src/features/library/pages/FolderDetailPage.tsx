@@ -9,7 +9,7 @@ import {
   ListChecks,
   Trash2,
 } from "lucide-react";
-import { deleteContent, getContents, getFolders } from "@/api";
+import { deleteContent, getContents, getFolders, getUnfiledContents } from "@/api";
 import type { Content, Folder } from "@/api";
 import { Badge, Card, EmptyState, SkeletonList, cn } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
@@ -52,8 +52,18 @@ function FolderMark({ color }: { color: string }) {
   );
 }
 
+/**
+ * Identificador da pasta virtual que reúne o que não está em pasta nenhuma.
+ *
+ * Não é uma pasta no banco: é uma visão. Existe porque material salvo sem pasta
+ * ficava inalcançável pela navegação — presente no banco e ausente da
+ * interface.
+ */
+export const UNFILED_ID = "sem-pasta";
+
 export function FolderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const isUnfiled = id === UNFILED_ID;
   const [contents, setContents] = useState<Content[]>([]);
   const [folder, setFolder] = useState<Folder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +76,12 @@ export function FolderDetailPage() {
     try {
       // As duas chamadas são independentes: esperar uma para começar a outra
       // dobraria a espera à toa.
+      if (isUnfiled) {
+        setContents(await getUnfiledContents());
+        setFolder(null);
+        return;
+      }
+
       const [data, folders] = await Promise.all([getContents(id), getFolders()]);
       setContents(data);
       setFolder(folders.find((f) => f.id === id) ?? null);
@@ -74,7 +90,7 @@ export function FolderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, addToast]);
+  }, [id, isUnfiled, addToast]);
 
   useEffect(() => {
     void load();
@@ -109,8 +125,12 @@ export function FolderDetailPage() {
             escolheu chamá-la de Biologia; repetir a palavra "pasta" na tela da
             pasta não informa nada que a navegação já não tenha dito. */}
         <PageHeader
-          title={folder?.name ?? "Pasta"}
-          description={description}
+          title={isUnfiled ? "Sem pasta" : (folder?.name ?? "Pasta")}
+          description={
+            isUnfiled && !loading && contents.length > 0
+              ? `${description} — escaneados antes de escolher uma pasta`
+              : description
+          }
           badge={folder ? <FolderMark color={folder.color} /> : undefined}
         />
 

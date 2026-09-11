@@ -23,11 +23,16 @@ const RETRY_BASE_MS = 700;
 /**
  * Teto de tempo para a análise inteira, somando modelos e tentativas.
  *
- * Existe porque a alternativa é pior que o erro: sem teto, uma sequência de
- * modelos lentos deixa alguém olhando "analisando" por minutos para receber uma
- * falha no fim. Preferível avisar antes.
+ * Cinco minutos, e não os 90s de antes, porque a escolha aqui é entre esperar e
+ * não receber nada. Com o tier gratuito da NVIDIA a análise oscilava entre 18s
+ * e mais de 45s, e o teto anterior transformava a oscilação em "A análise
+ * demorou mais que o esperado" com frequência — descartando trabalho que estava
+ * a caminho. Esperar mais é irritante; refazer a foto e torcer é pior.
+ *
+ * O teto continua existindo porque a alternativa é uma tela de carregamento
+ * eterna: em algum momento é preciso dizer que não vai dar.
  */
-export const TOTAL_BUDGET_MS = 90_000;
+export const TOTAL_BUDGET_MS = 300_000;
 
 /**
  * Teto de uma única chamada.
@@ -40,15 +45,16 @@ export const TOTAL_BUDGET_MS = 90_000;
  */
 /*
  * Calibrado sobre a latência real do tier gratuito da NVIDIA, que varia muito:
- * a mesma foto, no mesmo dia, foi analisada em 18,3s e depois em 37,7s. Um teto
- * de 30s cortaria a segunda medição no meio e desperdiçaria uma resposta que
- * estava a caminho — foi o que aconteceu no primeiro teste de ponta a ponta.
+ * a mesma foto, no mesmo dia, foi analisada em 18,3s e depois em 37,7s — e em
+ * dias de fila, bem mais que isso.
  *
- * É bem mais lento que o Gemini, que respondia em 2 a 6 segundos. O preço de
- * usar infraestrutura compartilhada e gratuita.
+ * Os valores são generosos de propósito. Cortar uma chamada que ia responder
+ * não economiza nada: a foto continua sem análise, e a pessoa tenta de novo,
+ * pagando a espera duas vezes. Dar tempo a cada tentativa custa segundos;
+ * cortá-la cedo custa a análise inteira.
  */
-const MIN_ATTEMPT_MS = 20_000;
-const MAX_ATTEMPT_MS = 45_000;
+const MIN_ATTEMPT_MS = 45_000;
+const MAX_ATTEMPT_MS = 120_000;
 
 /** Reparte o tempo que sobra entre os modelos que ainda não foram tentados. */
 export function attemptBudget(remainingMs: number, remainingModels: number): number {

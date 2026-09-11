@@ -4,6 +4,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ChevronRight,
   FileText,
   Folder,
   FolderPlus,
@@ -13,6 +14,7 @@ import {
   ScanLine,
   Sparkles,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { createFolder, getFolders, saveContent } from "@/api";
 import type { Folder as FolderData } from "@/api";
 import { useRouteState } from "@/shared/lib/navigation";
@@ -127,6 +129,7 @@ export function ResultPage() {
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [savingTo, setSavingTo] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [savedFolderId, setSavedFolderId] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
 
@@ -181,8 +184,11 @@ export function ResultPage() {
         folderId,
       });
       setSaved(true);
+      setSavedFolderId(folderId ?? null);
       setShowSaveModal(false);
-      addToast("success", "Conteúdo salvo com sucesso!");
+      // Sem toast aqui: a barra fixa abaixo já confirma o salvamento, e no
+      // lugar do botão que sumiu. Os dois juntos anunciavam o mesmo fato duas
+      // vezes, em cantos opostos da tela.
     } catch {
       addToast("error", "Erro ao salvar. Tente novamente.");
     } finally {
@@ -345,15 +351,36 @@ export function ResultPage() {
       >
         <div className="mx-auto w-full max-w-2xl">
           {saved ? (
+            /*
+             * Confirmação única, e com saída.
+             * Antes eram duas: esta barra e um toast, anunciando o mesmo fato
+             * em cantos opostos da tela. Ficou só ela — e agora leva à pasta,
+             * porque "salvei, e daí?" é a pergunta seguinte de quem acabou de
+             * guardar algo.
+             */
             <div
               className={cn(
-                "flex min-h-[3.25rem] animate-scale-in items-center justify-center gap-2",
-                "rounded-xl border border-success/30 bg-success-subtle px-4",
+                "flex min-h-[3.25rem] animate-scale-in items-center gap-3",
+                "rounded-xl border border-success/30 bg-success-subtle px-4 py-2",
               )}
               role="status"
             >
               <Check size={18} className="shrink-0 text-success" aria-hidden="true" />
-              <span className="font-semibold text-success">Salvo com sucesso!</span>
+              <span className="min-w-0 flex-1 font-semibold text-success">Salvo com sucesso!</span>
+
+              {savedFolderId !== null && (
+                <Link
+                  to={`/folders/${savedFolderId}`}
+                  className={cn(
+                    "inline-flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-lg px-3",
+                    "text-sm font-semibold text-success underline underline-offset-2",
+                    "transition-colors duration-150 hover:bg-success/10",
+                  )}
+                >
+                  Ver na pasta
+                  <ChevronRight size={16} aria-hidden="true" />
+                </Link>
+              )}
             </div>
           ) : (
             <Button
@@ -377,33 +404,15 @@ export function ResultPage() {
         description="Escolha onde guardar este material — ou salve sem pasta e organize depois."
       >
         <div className="flex flex-col gap-5">
-          <button
-            type="button"
-            onClick={() => void handleSave(undefined)}
-            disabled={busy}
-            className={cn(
-              "flex min-h-[3.25rem] w-full items-center gap-3 rounded-xl border border-dashed border-border-strong px-3",
-              "text-left transition-colors duration-150 hover:bg-surface-sunken",
-              "disabled:cursor-not-allowed disabled:opacity-55",
-            )}
-          >
-            <span
-              className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-sunken text-text-subtle"
-              aria-hidden="true"
-            >
-              <FolderPlus size={18} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium text-text">Sem pasta (geral)</span>
-              <span className="block text-xs text-text-subtle">Fica na lista de conteúdos</span>
-            </span>
-            {savingTo === "none" && (
-              <span
-                className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent text-text-muted"
-                aria-hidden="true"
-              />
-            )}
-          </button>
+          {/*
+            A opção "Sem pasta (geral)" saiu daqui.
+            Ela prometia "fica na lista de conteúdos", e essa lista não existe
+            na interface: a listagem de materiais só é consultada por pasta.
+            Salvar sem escolher uma equivalia a arquivar o material onde ele
+            nunca mais seria encontrado — cinco dos seis materiais deste banco
+            estavam nesse estado. Escolher a pasta agora é parte de salvar, e o
+            que já ficou solto aparece em "Sem pasta", na lista de pastas.
+          */}
 
           {loadingFolders ? (
             <SkeletonList count={2} label="Carregando pastas" />
