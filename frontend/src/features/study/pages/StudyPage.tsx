@@ -133,7 +133,18 @@ function nextReviewLabel(days: number): string {
  * O conteúdo é buscado só quando a pessoa abre, e uma vez por sessão: quem
  * nunca precisa não paga a requisição.
  */
-function SummaryPeek({ contentId }: { contentId: string }) {
+function SummaryPeek({
+  contentId,
+  variant = "pill",
+}: {
+  contentId: string;
+  /**
+   * `pill` cabe na barra de progresso sem competir com o cartão; `button`
+   * ocupa a largura no fim da sessão, onde consultar o material deixa de ser
+   * interrupção e passa a ser o próximo passo natural.
+   */
+  variant?: "pill" | "button";
+}) {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(false);
@@ -156,24 +167,43 @@ function SummaryPeek({ contentId }: { contentId: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => void handleOpen()}
-        className={cn(
-          "flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-full border px-3",
-          "border-border bg-surface text-xs font-medium text-text-muted",
-          "transition-colors duration-150 hover:border-border-strong hover:text-text",
-        )}
-      >
-        <ScrollText size={14} aria-hidden="true" />
-        Resumo
-      </button>
+      {variant === "pill" ? (
+        <button
+          type="button"
+          onClick={() => void handleOpen()}
+          className={cn(
+            "flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-full border px-3",
+            "border-border bg-surface text-xs font-medium text-text-muted",
+            "transition-colors duration-150 hover:border-border-strong hover:text-text",
+          )}
+        >
+          <ScrollText size={14} aria-hidden="true" />
+          Resumo
+        </button>
+      ) : (
+        <Button
+          variant="secondary"
+          fullWidth
+          size="lg"
+          icon={<ScrollText size={18} />}
+          onClick={() => void handleOpen()}
+        >
+          Ver resumo e tópicos
+        </Button>
+      )}
 
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
         title="Resumo do material"
-        description="Sua sessão continua de onde parou."
+        // A frase muda com o momento: no meio da revisão ela tranquiliza quem
+        // teme perder o progresso; no fim, a sessão já acabou e prometer que
+        // ela continua seria mentira.
+        description={
+          variant === "pill"
+            ? "Sua sessão continua de onde parou."
+            : "Reveja o material antes da próxima revisão."
+        }
       >
         {loading && <Skeleton className="h-24 rounded-xl" />}
 
@@ -449,7 +479,14 @@ export function StudyPage() {
             {flipped ? "Voltar para a pergunta" : "Mostrar a resposta"}
           </span>
 
-          <span className="flashcard-inner block" aria-live="polite">
+          {/*
+            `data-flipped` é o que de fato vira o cartão: o CSS gira em
+            `.flashcard-inner[data-flipped="true"]`. Sem este atributo o estado
+            existia só na árvore de acessibilidade — `aria-pressed` mudava, o
+            leitor de tela anunciava a resposta, e quem enxerga via o cartão
+            parado na pergunta.
+          */}
+          <span className="flashcard-inner block" data-flipped={flipped} aria-live="polite">
             {/*
               A frente carrega o peso visual da tela inteira, e antes era um
               retângulo de cor chapada. O degradê e o brilho no canto superior
@@ -680,6 +717,11 @@ function SessionSummaryView({
           <Button fullWidth size="lg" icon={<RotateCcw size={18} />} onClick={onRestart}>
             {isPractice ? "Praticar de novo" : "Continuar revisando"}
           </Button>
+
+          {/* Rever o material logo depois de errar cartões é o momento em que a
+              consulta rende mais — e antes a única forma de chegar lá era sair
+              da tela e navegar de volta. */}
+          {contentId !== undefined && <SummaryPeek contentId={contentId} variant="button" />}
           {/* O rótulo diz o destino real. "Voltar ao início" depois de estudar
               um material específico era mentira: a pessoa quer voltar para o
               material, e era para lá que ela precisava de um caminho. */}
