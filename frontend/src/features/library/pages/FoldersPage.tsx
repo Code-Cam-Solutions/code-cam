@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ChevronRight, Folder, FolderPlus, Pencil, Search, Trash2 } from "lucide-react";
-import { createFolder, deleteFolder, getFolders, updateFolder } from "@/api";
+import {
+  Check,
+  ChevronRight,
+  Folder,
+  FolderPlus,
+  Inbox,
+  Pencil,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { createFolder, deleteFolder, getFolders, getUnfiledContents, updateFolder } from "@/api";
 import type { Folder as FolderType } from "@/api";
 import { Button, Card, Dialog, EmptyState, Input, SkeletonList, cn } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
+import { UNFILED_ID } from "./FolderDetailPage";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { ToastContainer, useToast } from "@/shared/components/Toast";
 
@@ -74,6 +84,11 @@ function matches(name: string, query: string): boolean {
 
 export function FoldersPage() {
   const [folders, setFolders] = useState<FolderType[]>([]);
+  /**
+   * Quantos materiais ficaram sem pasta. A entrada só aparece quando existe
+   * algum: uma pasta vazia permanente seria ruído na lista de todo mundo.
+   */
+  const [unfiledCount, setUnfiledCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState("");
@@ -88,8 +103,10 @@ export function FoldersPage() {
   const loadFolders = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getFolders();
+      // As duas consultas são independentes; encadeá-las dobraria a espera.
+      const [data, unfiled] = await Promise.all([getFolders(), getUnfiledContents()]);
       setFolders(data);
+      setUnfiledCount(unfiled.length);
     } catch {
       addToast("error", "Erro ao carregar pastas.");
     } finally {
@@ -337,6 +354,43 @@ export function FoldersPage() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {/*
+            Material salvo sem pasta ficava inalcançável: a listagem só era
+            chamada com um `folderId`, então ele existia no banco, contava nas
+            estatísticas e não aparecia em tela alguma. Esta entrada não é uma
+            pasta de verdade — é a visão que devolve o acesso a eles. Some
+            sozinha quando não há nenhum.
+          */}
+          {!loading && unfiledCount > 0 && (
+            <Link
+              to={`/folders/${UNFILED_ID}`}
+              className="group mt-3 block rounded-xl"
+              aria-label={`Ver ${unfiledCount} materiais sem pasta`}
+            >
+              <Card interactive padding="md" className="border-dashed">
+                <span className="flex items-center gap-3">
+                  <span
+                    className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface-sunken text-text-muted"
+                    aria-hidden="true"
+                  >
+                    <Inbox size={20} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-text">Sem pasta</span>
+                    <span className="block text-sm text-text-muted">
+                      {unfiledCount} {unfiledCount === 1 ? "material" : "materiais"} para organizar
+                    </span>
+                  </span>
+                  <ChevronRight
+                    size={18}
+                    className="shrink-0 text-text-subtle transition-transform duration-200 ease-enter group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </span>
+              </Card>
+            </Link>
           )}
         </div>
       </main>

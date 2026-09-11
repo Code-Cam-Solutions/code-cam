@@ -65,6 +65,17 @@ export function getContents(folderId?: string): Promise<Content[]> {
   return request<Content[]>("/contents", { query: { folderId } });
 }
 
+/**
+ * Materiais que não estão em pasta nenhuma.
+ *
+ * Existiam no banco e não apareciam em tela alguma: a listagem só era chamada
+ * com um `folderId`, então salvar sem escolher pasta equivalia a perder o
+ * material de vista.
+ */
+export function getUnfiledContents(): Promise<Content[]> {
+  return request<Content[]>("/contents", { query: { unfiled: "true" } });
+}
+
 export function getContent(id: string): Promise<Content> {
   return request<Content>(`/contents/${id}`);
 }

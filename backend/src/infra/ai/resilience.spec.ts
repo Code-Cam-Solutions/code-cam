@@ -115,22 +115,22 @@ describe('attemptBudget', () => {
    * segundo.
    */
   it('reparte o tempo restante entre os modelos que faltam', () => {
-    expect(attemptBudget(90_000, 3)).toBe(30_000);
-    expect(attemptBudget(60_000, 2)).toBe(30_000);
+    expect(attemptBudget(300_000, 3)).toBe(100_000);
+    expect(attemptBudget(180_000, 2)).toBe(90_000);
   });
 
   it('não deixa uma tentativa abaixo do mínimo útil', () => {
-    // A NVIDIA levou de 18s a 38s na mesma foto: janela curta corta resposta
-    // que estava a caminho.
-    expect(attemptBudget(2_000, 3)).toBe(20_000);
+    // Cortar uma chamada que ia responder não economiza nada: a foto continua
+    // sem análise e a pessoa paga a espera duas vezes.
+    expect(attemptBudget(2_000, 3)).toBe(45_000);
   });
 
   it('não deixa uma tentativa monopolizar o orçamento', () => {
-    expect(attemptBudget(300_000, 1)).toBe(45_000);
+    expect(attemptBudget(600_000, 1)).toBe(120_000);
   });
 
   it('trata o último modelo sem dividir por zero', () => {
-    expect(attemptBudget(30_000, 0)).toBe(30_000);
+    expect(attemptBudget(60_000, 0)).toBe(60_000);
   });
 });
 

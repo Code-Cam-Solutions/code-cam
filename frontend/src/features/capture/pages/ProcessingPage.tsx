@@ -22,6 +22,8 @@ export function ProcessingPage() {
   const { imageBlob, formats, thumbnail } = useRouteState<"/processing">();
   const hasFired = useRef(false);
   const [progress, setProgress] = useState(6);
+  /** Segundos desde o início, só para escolher a mensagem de espera. */
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     // Guard: if accessed directly without a blob, send back to camera
@@ -54,6 +56,11 @@ export function ProcessingPage() {
    * começo — quando a espera ainda parece longa — e vai freando, sem nunca
    * encostar no fim antes de a resposta chegar e a rota trocar.
    */
+  useEffect(() => {
+    const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const id = window.setInterval(() => {
       setProgress((current) =>
@@ -144,7 +151,20 @@ export function ProcessingPage() {
           </Card>
         </div>
 
-        <p className="mt-6 text-center text-xs text-text-subtle">Isso pode levar alguns segundos</p>
+        {/*
+          A mensagem muda com o tempo decorrido. "Alguns segundos" era verdade
+          com o fornecedor anterior; hoje a análise costuma levar de vinte
+          segundos a um minuto, e em dia de fila passa disso. Quem está há um
+          minuto olhando a tela precisa saber que isso ainda é normal — do
+          contrário desiste e refaz a foto, pagando a espera duas vezes.
+        */}
+        <p className="mt-6 text-center text-xs text-text-subtle" aria-live="polite">
+          {elapsed < 25
+            ? "Isso costuma levar menos de um minuto"
+            : elapsed < 70
+              ? "Ainda analisando — a IA está lendo o texto da imagem"
+              : "A fila da IA está cheia agora. Seguimos tentando, não feche a tela."}
+        </p>
       </div>
 
       <p className="sr-only">

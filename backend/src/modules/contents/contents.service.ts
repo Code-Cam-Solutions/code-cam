@@ -69,6 +69,7 @@ export class ContentsService {
       where: {
         userId,
         ...(filters.folderId ? { folderId: filters.folderId } : {}),
+        ...(filters.unfiled ? { folderId: null } : {}),
       },
       orderBy: { createdAt: 'desc' },
       select: {
