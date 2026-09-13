@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { pickVoice } from "@/shared/lib/voice";
 
 export type FontSize = "sm" | "md" | "lg" | "xl";
 
@@ -202,13 +203,9 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
         utterance.lang = "pt-BR";
         utterance.rate = settings.ttsRate;
 
-        // Vozes locais soam melhor e não dependem de rede; as remotas ficam
-        // como segunda opção para quem não tem voz em português instalada.
         const voices = voicesRef.current.length > 0 ? voicesRef.current : synth.getVoices();
-        const portuguese =
-          voices.find((voice) => voice.lang.startsWith("pt") && voice.localService) ??
-          voices.find((voice) => voice.lang.startsWith("pt"));
-        if (portuguese) utterance.voice = portuguese;
+        const voice = pickVoice(voices);
+        if (voice) utterance.voice = voice;
 
         /*
          * O Chrome interrompe a fala sozinho por volta dos 15 segundos. Um
