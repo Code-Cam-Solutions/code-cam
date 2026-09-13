@@ -14,7 +14,10 @@ export function BottomNav() {
       aria-label="Navegação principal"
       className={cn(
         "fixed inset-x-0 bottom-0 flex items-stretch justify-around",
-        "border-t border-border bg-bg/90 backdrop-blur-md",
+        // Sem linha divisória: o desfoque e a mudança de fundo já separam a
+        // barra do conteúdo. A borda somava um traço duro embaixo de toda tela,
+        // e nas que têm barra de ação fixa viravam duas linhas paralelas.
+        "bg-bg/92 backdrop-blur-xl",
         // Reserva a faixa da barra de gestos do iOS para que os botões não
         // fiquem embaixo dela.
         "pb-[env(safe-area-inset-bottom)]",

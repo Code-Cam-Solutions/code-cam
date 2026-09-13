@@ -140,6 +140,17 @@ export class GeminiClient implements VisionProvider {
          * texto ao redor do JSON.
          */
         responseMimeType: 'application/json',
+
+        /*
+         * Teto explícito de saída.
+         *
+         * Sem ele a resposta vinha cortada no meio do JSON — o log registrou
+         * `"topics": [ "A fotossí` e nada mais, e o parser recusava a análise
+         * inteira. Os modelos flash atuais raciocinam antes de responder, e
+         * esses tokens de raciocínio saem do mesmo orçamento da resposta: o
+         * padrão não sobra para um resumo longo mais tópicos e flashcards.
+         */
+        maxOutputTokens: 8192,
       },
     });
 

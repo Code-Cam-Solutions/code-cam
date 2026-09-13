@@ -345,7 +345,11 @@ export function ResultPage() {
       <div
         className={cn(
           "fixed inset-x-0 bottom-[calc(3.5rem_+_env(safe-area-inset-bottom))]",
-          "border-t border-border bg-bg/90 px-4 py-3 backdrop-blur-md",
+          // Sem borda própria: esta barra encosta na navegação inferior, que
+          // já tem a sua. As duas juntas desenhavam duas linhas paralelas a
+          // poucos pixels uma da outra. O desfoque sozinho separa o conteúdo
+          // que rola por baixo.
+          "bg-bg/90 px-4 py-3 backdrop-blur-md",
         )}
         style={{ zIndex: "var(--ds-z-nav)" }}
       >

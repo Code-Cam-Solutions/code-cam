@@ -3,15 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import type { Env } from '@config/env.validation';
 import { GeminiClient } from '@infra/gemini/gemini.client';
 import { NvidiaClient } from '@infra/nvidia/nvidia.client';
+import { FallbackVisionProvider } from './fallback-vision-provider';
 import { VISION_PROVIDER, type VisionProvider } from './vision-provider';
 
 /**
- * Escolhe o fornecedor de visão no boot, conforme `AI_PROVIDER`.
+ * Monta a cadeia de fornecedores de visão conforme `AI_PROVIDER`.
  *
- * Os dois clientes são construídos, mas só o escolhido é exposto pelo token —
- * construir é barato (nenhum abre conexão no construtor) e manter os dois vivos
- * é o que permite trocar de fornecedor editando uma linha do `.env`, sem
- * recompilar nem mexer em código.
+ * `AI_PROVIDER` deixa de escolher um e passa a definir a ordem: o nomeado
+ * atende primeiro, o outro entra quando ele está sobrecarregado. A análise
+ * costuma ser lenta não por causa do nosso código, mas da fila do serviço — e
+ * medindo a mesma foto no mesmo dia, os dois oscilaram muito (Gemini 19,7s,
+ * NVIDIA 83s a 105s, e o Gemini devolvendo 503 minutos depois). Encadear troca
+ * uma falha por uma espera um pouco maior, que é o negócio certo aqui: quem
+ * recebe erro precisa refazer a foto e esperar tudo de novo.
  */
 @Module({
   providers: [
@@ -25,7 +29,10 @@ import { VISION_PROVIDER, type VisionProvider } from './vision-provider';
         nvidia: NvidiaClient,
         gemini: GeminiClient,
       ): VisionProvider => {
-        return config.get('AI_PROVIDER', { infer: true }) === 'gemini' ? gemini : nvidia;
+        const preferido = config.get('AI_PROVIDER', { infer: true });
+        return preferido === 'gemini'
+          ? new FallbackVisionProvider(gemini, nvidia)
+          : new FallbackVisionProvider(nvidia, gemini);
       },
     },
   ],

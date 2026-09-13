@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { deleteContent, getContents, getFolders, getUnfiledContents } from "@/api";
 import type { Content, Folder } from "@/api";
-import { Badge, Card, EmptyState, SkeletonList, cn } from "@/design-system";
+import { Badge, Button, Card, Dialog, EmptyState, SkeletonList, cn } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
 import { PageHeader } from "@/shared/components/PageHeader";
@@ -68,6 +68,8 @@ export function FolderDetailPage() {
   const [folder, setFolder] = useState<Folder | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  /** Material aguardando confirmação. Excluir aqui é definitivo. */
+  const [confirmingDelete, setConfirmingDelete] = useState<Content | null>(null);
   const { toasts, addToast, removeToast } = useToast();
 
   const load = useCallback(async () => {
@@ -97,6 +99,7 @@ export function FolderDetailPage() {
   }, [load]);
 
   async function handleDelete(contentId: string, title: string) {
+    setConfirmingDelete(null);
     setDeletingId(contentId);
     try {
       await deleteContent(contentId);
@@ -219,12 +222,15 @@ export function FolderDetailPage() {
                   */}
                   <button
                     type="button"
-                    onClick={() => void handleDelete(content.id, content.title)}
+                    onClick={() => setConfirmingDelete(content)}
                     disabled={removing}
                     aria-label={`Remover ${content.title}`}
                     className={cn(
                       "absolute top-2 right-2 grid size-9 place-items-center rounded-lg",
-                      "text-text-subtle opacity-0 transition-[opacity,color,background-color] duration-150",
+                      "text-text-subtle transition-[opacity,color,background-color] duration-150",
+                      // Recuar só onde existe ponteiro: em celular, invisível e
+                      // clicável é como uma ação destrutiva vira acidente.
+                      "[@media(hover:hover)]:opacity-0",
                       "hover:bg-danger-subtle hover:text-danger focus-visible:opacity-100",
                       "group-hover:opacity-100 disabled:opacity-50",
                     )}
@@ -244,6 +250,34 @@ export function FolderDetailPage() {
           </ul>
         )}
       </main>
+
+      {/*
+        Diferente da pasta, aqui a exclusão é definitiva: o material e seus
+        flashcards saem do banco por cascata. Merece confirmação que diga isso.
+      */}
+      <Dialog
+        open={confirmingDelete !== null}
+        onClose={() => setConfirmingDelete(null)}
+        title={`Excluir "${confirmingDelete?.title ?? ""}"?`}
+        description="O resumo, os tópicos e os flashcards deste material são apagados para sempre."
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="danger"
+            size="lg"
+            fullWidth
+            icon={<Trash2 size={18} />}
+            onClick={() =>
+              confirmingDelete && void handleDelete(confirmingDelete.id, confirmingDelete.title)
+            }
+          >
+            Excluir material
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => setConfirmingDelete(null)}>
+            Cancelar
+          </Button>
+        </div>
+      </Dialog>
 
       <BottomNav />
     </div>
