@@ -89,6 +89,10 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Precisa estar aqui também: a propagação de overflow do `body` para a
+     viewport só acontece quando o `html` não a declara, e sem isto o halo
+     decorativo continuava alargando o documento. */
+  overflow-x: clip;
   /* Impede que o navegador role a página por baixo de uma modal aberta. */
   scroll-behavior: smooth;
 }
@@ -101,6 +105,16 @@ html {
 
 body {
   margin: 0;
+  /*
+   * Os halos decorativos são posicionados com deslocamento negativo à direita
+   * para sangrar além do cartão. Sem conter isso, eles alargavam o documento e
+   * a tela inicial rolava 64px para o lado — em celular, é a página escapando
+   * do dedo.
+   *
+   * `clip` e não `hidden`: `hidden` cria um contexto de rolagem e quebraria o
+   * `position: sticky` da barra superior. `clip` corta sem criar contexto.
+   */
+  overflow-x: clip;
   min-height: 100dvh;
   background-color: var(--ds-bg);
   color: var(--ds-text);

@@ -54,9 +54,21 @@ const COLOR_GROUP_ID = "create-folder-color";
  * botão é o que mantém os dois alcançáveis por teclado — sem isso, recuar
  * viraria esconder.
  */
+/*
+ * Recuar só onde existe ponteiro.
+ *
+ * Antes o botão nascia invisível e aparecia no hover. Em celular não existe
+ * hover: o excluir ficava invisível e totalmente clicável, e tocar perto da
+ * borda direita de uma pasta a apagava sem aviso. Invisível e clicável é a
+ * pior combinação possível para uma ação destrutiva.
+ *
+ * `@media (hover: hover)` é o que separa os dois mundos — onde há ponteiro, o
+ * botão recua; onde só há toque, fica sempre visível.
+ */
 const ICON_BUTTON = cn(
   "grid size-11 shrink-0 place-items-center rounded-lg",
-  "opacity-0 transition-[opacity,color,background-color] duration-150",
+  "transition-[opacity,color,background-color] duration-150",
+  "[@media(hover:hover)]:opacity-0",
   "focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100",
 );
 
@@ -97,6 +109,8 @@ export function FoldersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  /** Pasta aguardando confirmação de exclusão. */
+  const [confirmingDelete, setConfirmingDelete] = useState<FolderType | null>(null);
   const [query, setQuery] = useState("");
   const { toasts, addToast, removeToast } = useToast();
 
@@ -148,6 +162,7 @@ export function FoldersPage() {
   }
 
   async function handleDelete(id: string, name: string) {
+    setConfirmingDelete(null);
     setDeletingId(id);
     try {
       await deleteFolder(id);
@@ -322,7 +337,7 @@ export function FoldersPage() {
 
                         <button
                           type="button"
-                          onClick={() => void handleDelete(folder.id, folder.name)}
+                          onClick={() => setConfirmingDelete(folder)}
                           disabled={deletingId === folder.id}
                           aria-label={`Excluir pasta ${folder.name}`}
                           className={cn(
@@ -394,6 +409,40 @@ export function FoldersPage() {
           )}
         </div>
       </main>
+
+      {/*
+        Excluir pasta não pedia nada: um toque e ela sumia. Como o botão ainda
+        era invisível em celular, dava para apagar uma pasta sem sequer saber
+        que havia um botão ali. Agora a ação diz o nome do que vai sumir e o que
+        acontece com o que está dentro.
+      */}
+      <Dialog
+        open={confirmingDelete !== null}
+        onClose={() => setConfirmingDelete(null)}
+        title={`Excluir "${confirmingDelete?.name ?? ""}"?`}
+        description={
+          (confirmingDelete?._count?.contents ?? 0) > 0
+            ? `Os ${confirmingDelete?._count?.contents} materiais não são apagados: eles vão para "Sem pasta" e continuam acessíveis.`
+            : "A pasta está vazia. Nada mais será removido."
+        }
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="danger"
+            size="lg"
+            fullWidth
+            icon={<Trash2 size={18} />}
+            onClick={() =>
+              confirmingDelete && void handleDelete(confirmingDelete.id, confirmingDelete.name)
+            }
+          >
+            Excluir pasta
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => setConfirmingDelete(null)}>
+            Cancelar
+          </Button>
+        </div>
+      </Dialog>
 
       <BottomNav />
 

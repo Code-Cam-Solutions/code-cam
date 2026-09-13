@@ -46,7 +46,13 @@ export function HomePage() {
     <div className="flex min-h-dvh flex-col bg-bg">
       <Navbar />
 
-      <main id="main-content" className="relative mx-auto w-full max-w-2xl flex-1 px-4 pt-5 pb-28">
+      {/* `overflow-x-clip` contém o halo, que sangra para fora da largura de
+          propósito. `clip` em vez de `hidden` para não criar contexto de
+          rolagem e quebrar o `sticky` da barra. */}
+      <main
+        id="main-content"
+        className="relative mx-auto w-full max-w-2xl flex-1 overflow-x-clip px-4 pt-5 pb-28"
+      >
         {/* Brilho de marca. Puramente decorativo: dá profundidade ao topo da
             tela sem depender de sombra, que praticamente não aparece no tema
             escuro. Some no alto contraste. */}

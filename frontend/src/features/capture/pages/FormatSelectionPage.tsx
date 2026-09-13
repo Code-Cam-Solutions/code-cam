@@ -188,7 +188,7 @@ export function FormatSelectionPage() {
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 border-t border-border bg-bg/92 backdrop-blur-md",
+          "fixed inset-x-0 bottom-0 bg-bg/92 backdrop-blur-xl",
           "px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]",
         )}
         style={{ zIndex: "var(--ds-z-sticky)" }}

@@ -480,34 +480,37 @@ export function StudyPage() {
   // ─── Estudo ──────────────────────────────────────────────────────────────
   return (
     <Shell title={studyTitle} onBack={irParaOrigem}>
-      <div className="pt-4">
-        <Progress value={index} max={total} label={`Cartão ${index + 1} de ${total}`} />
+      {/*
+        Cabeçalho em uma faixa só.
+        Antes eram três blocos empilhados — contador, barra e uma linha com o
+        título — somando altura e empurrando o cartão para baixo, enquanto
+        sobrava vazio em cima e embaixo dele. Agora o nome do material e a
+        consulta dividem a primeira linha, e a barra fecha a faixa.
+      */}
+      <div className="shrink-0 pt-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-text-muted">
+            {isPersisted(current) ? current.content.title : (result?.title ?? "Prática livre")}
+          </p>
 
-        {isPractice && result && (
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="min-w-0 truncate text-sm font-medium text-text-muted">{result.title}</p>
+          {isPersisted(current) && <SummaryPeek contentId={current.content.id} />}
+          {isPractice && result && (
             <SummaryPeek inline={{ summary: result.summary, topics: result.topics }} />
-          </div>
-        )}
+          )}
+        </div>
 
-        {isPersisted(current) && (
-          /* Título à esquerda, consulta à direita: centralizados, os dois
-             disputavam o eixo e o botão parecia pendurado no texto. */
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="min-w-0 truncate text-sm font-medium text-text-muted">
-              {current.content.title}
-            </p>
-            <SummaryPeek contentId={current.content.id} />
-          </div>
-        )}
+        <div className="mt-3">
+          <Progress value={index} max={total} label={`Cartão ${index + 1} de ${total}`} />
+        </div>
+
         {isPractice && (
-          <p className="mt-2 text-center text-xs text-text-subtle">
-            Prática livre — salve o material para que os cartões voltem no tempo certo.
+          <p className="mt-2 text-xs text-text-subtle">
+            Prática livre — salve o material para os cartões voltarem no tempo certo.
           </p>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-4">
+      <div className="flex flex-1 flex-col justify-center py-3">
         {/*
           O cartão inteiro é o alvo de virada, e por isso é um `button` de
           verdade: Enter e Espaço já funcionam, o foco já é visível e o estado
@@ -519,7 +522,7 @@ export function StudyPage() {
           type="button"
           onClick={() => setFlipped((value) => !value)}
           aria-pressed={flipped}
-          className="flashcard-scene block h-[clamp(15rem,44vh,21rem)] w-full rounded-2xl"
+          className="flashcard-scene block h-[clamp(17rem,54vh,27rem)] w-full rounded-2xl"
         >
           <span className="sr-only">
             {flipped ? "Voltar para a pergunta" : "Mostrar a resposta"}

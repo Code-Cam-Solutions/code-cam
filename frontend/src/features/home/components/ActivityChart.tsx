@@ -87,23 +87,32 @@ export function ActivityChart({ days, className }: ActivityChartProps) {
       </div>
 
       {/* Alternativa textual. Cumpre a WCAG 1.1.1 sem duplicar nada na tela. */}
-      <table className="sr-only">
-        <caption>Revisões por dia nas últimas duas semanas</caption>
-        <thead>
-          <tr>
-            <th scope="col">Dia</th>
-            <th scope="col">Revisões</th>
-          </tr>
-        </thead>
-        <tbody>
-          {days.map((day) => (
-            <tr key={day.date}>
-              <th scope="row">{formatDay(day.date)}</th>
-              <td>{day.reviews}</td>
+      {/*
+        O `sr-only` vai no invólucro, não na tabela.
+        `display: table` usa dimensionamento intrínseco e ignora o `width: 1px`
+        da classe: a tabela continuava ocupando 276px de altura invisível, e a
+        tela inicial rolava esse tanto além do conteúdo. Numa `div` a regra
+        pega, e a tabela lá dentro mantém a semântica que o leitor de tela usa.
+      */}
+      <div className="sr-only">
+        <table>
+          <caption>Revisões por dia nas últimas duas semanas</caption>
+          <thead>
+            <tr>
+              <th scope="col">Dia</th>
+              <th scope="col">Revisões</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {days.map((day) => (
+              <tr key={day.date}>
+                <th scope="row">{formatDay(day.date)}</th>
+                <td>{day.reviews}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }
