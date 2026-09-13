@@ -96,6 +96,11 @@ Object.defineProperty(window, "speechSynthesis", {
     pause: vi.fn(),
     resume: vi.fn(),
     getVoices: vi.fn(() => []),
+    // O contexto escuta `voiceschanged` para saber quando as vozes chegam —
+    // `getVoices()` devolve lista vazia logo após o carregamento. Sem estes
+    // dois no mock, a montagem do provider quebra.
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
     speaking: false,
     paused: false,
     pending: false,
