@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -153,6 +154,31 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ttsRate }));
   }, []);
 
+  /*
+   * As vozes chegam depois.
+   *
+   * `getVoices()` devolve lista vazia logo após o carregamento — medido neste
+   * app: 0 vozes na primeira chamada e 180 um segundo depois. Como a busca pela
+   * voz em português acontecia dentro do `speak`, a primeira leitura da sessão
+   * saía na voz padrão do sistema, muitas vezes em inglês lendo texto em
+   * português. Guardar a lista quando o navegador avisa resolve na origem.
+   */
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+
+    const synth = window.speechSynthesis;
+    const load = () => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) voicesRef.current = voices;
+    };
+
+    load();
+    synth.addEventListener("voiceschanged", load);
+    return () => synth.removeEventListener("voiceschanged", load);
+  }, []);
+
   const resetSettings = useCallback(() => {
     setSettings(defaultSettings);
   }, []);
@@ -162,20 +188,53 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
       if (!settings.ttsEnabled) return;
       if (!("speechSynthesis" in window)) return;
 
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "pt-BR";
-      utterance.rate = settings.ttsRate;
+      const synth = window.speechSynthesis;
 
-      // Vozes locais soam melhor e não dependem de rede; as remotas ficam como
-      // segunda opção para quem não tem voz em português instalada.
-      const voices = window.speechSynthesis.getVoices();
-      const portuguese =
-        voices.find((voice) => voice.lang.startsWith("pt") && voice.localService) ??
-        voices.find((voice) => voice.lang.startsWith("pt"));
-      if (portuguese) utterance.voice = portuguese;
+      /*
+       * Cancelar e falar no mesmo instante deixa o motor do Chrome travado em
+       * silêncio — um defeito antigo e bem conhecido dele. O `setTimeout` de
+       * um tique dá ao cancelamento a chance de concluir antes do novo pedido.
+       */
+      synth.cancel();
 
-      window.speechSynthesis.speak(utterance);
+      window.setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "pt-BR";
+        utterance.rate = settings.ttsRate;
+
+        // Vozes locais soam melhor e não dependem de rede; as remotas ficam
+        // como segunda opção para quem não tem voz em português instalada.
+        const voices = voicesRef.current.length > 0 ? voicesRef.current : synth.getVoices();
+        const portuguese =
+          voices.find((voice) => voice.lang.startsWith("pt") && voice.localService) ??
+          voices.find((voice) => voice.lang.startsWith("pt"));
+        if (portuguese) utterance.voice = portuguese;
+
+        /*
+         * O Chrome interrompe a fala sozinho por volta dos 15 segundos. Um
+         * resumo inteiro passa disso com folga e era cortado no meio sem aviso.
+         * Chamar `resume()` periodicamente enquanto fala mantém o motor vivo;
+         * o intervalo é desligado no fim, no erro e no cancelamento.
+         */
+        let keepAlive = 0;
+        const stopKeepAlive = () => {
+          if (keepAlive !== 0) {
+            window.clearInterval(keepAlive);
+            keepAlive = 0;
+          }
+        };
+
+        utterance.onstart = () => {
+          keepAlive = window.setInterval(() => {
+            if (synth.speaking) synth.resume();
+            else stopKeepAlive();
+          }, 10_000);
+        };
+        utterance.onend = stopKeepAlive;
+        utterance.onerror = stopKeepAlive;
+
+        synth.speak(utterance);
+      }, 0);
     },
     [settings.ttsEnabled, settings.ttsRate],
   );
