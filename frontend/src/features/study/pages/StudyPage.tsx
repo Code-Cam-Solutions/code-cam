@@ -41,6 +41,7 @@ import { Navbar } from "@/shared/components/Navbar";
 import { TTSButton } from "@/shared/components/TTSButton";
 import { ReadableProse, ReadingMark } from "@/shared/components/ReadingAid";
 import { useReadingAid } from "@/shared/hooks/useReadingAid";
+import { useAccessibility } from "@/shared/context/AccessibilityContext";
 import { useAsync } from "@/shared/hooks/useAsync";
 import { useRouteState } from "@/shared/lib/navigation";
 
@@ -337,9 +338,24 @@ export function StudyPage() {
   }, [voltarParaOResultado, navigate, result, formats, thumbnail, backTo]);
 
   const aid = useReadingAid();
+  const { stopSpeaking } = useAccessibility();
 
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+
+  /*
+   * A fala para quando o conteúdo sai da tela.
+   *
+   * A leitura continuava por cima do cartão seguinte: quem ouvia a pergunta e
+   * avançava ficava com a resposta anterior sendo narrada enquanto olhava outro
+   * cartão. Vale para os três casos em que o texto lido deixa de estar visível
+   * — virar o cartão, avançar para o próximo e sair da revisão.
+   *
+   * `stopSpeaking` como função de limpeza é o que faz isso: ela roda antes do
+   * efeito seguinte (quando `index` ou `flipped` mudam) e também na
+   * desmontagem.
+   */
+  useEffect(() => stopSpeaking, [index, flipped, stopSpeaking]);
   const [tally, setTally] = useState<Tally>(EMPTY_TALLY);
   const [finished, setFinished] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
