@@ -107,14 +107,13 @@ export function LoginPage() {
 
           {/* Selos do que o app faz. Ícone e texto juntos: o ícone sozinho não
               informaria quem não conhece a convenção. */}
-          <ul className="mt-6 flex w-full max-w-[32rem] flex-wrap items-center justify-center gap-2 px-1">
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 px-1">
             {CAPABILITIES.map(({ icon: Icon, label }) => (
               <li
                 key={label}
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-full border border-border",
                   "bg-surface/70 px-3 py-1.5 text-xs font-medium text-text-muted backdrop-blur-sm",
-                  "sm:shrink-0",
                 )}
               >
                 <Icon size={14} className="text-accent" aria-hidden="true" />
@@ -158,11 +157,8 @@ export function LoginPage() {
             formulário — duas caixas empilhadas disputando a mesma atenção em
             uma tela com um único campo. Como texto solto, informa sem competir.
           */}
-          <p className="flex items-start gap-2 px-2 text-center text-sm text-text-subtle" style={{ marginTop: "10px" }}>
-            
-            <span>
-              Sem senha e sem cadastro. Seu nome basta e tudo pode ser lido em voz alta.
-            </span>
+          <p className="mt-2.5 px-2 text-center text-sm text-text-subtle">
+            Sem senha e sem cadastro. Seu nome basta e tudo pode ser lido em voz alta.
           </p>
         </div>
       </main>
