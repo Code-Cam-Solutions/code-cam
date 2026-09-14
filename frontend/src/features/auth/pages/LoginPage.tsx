@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Camera, Layers, ListChecks, Sparkles, User } from "lucide-react";
+import { ArrowRight, Eye, Layers, ListChecks, Sparkles, User } from "lucide-react";
 import { useAuth } from "@/shared/context/AuthContext";
 import { login } from "@/api";
 import { Button, Card, Input, cn } from "@/design-system";
@@ -16,6 +16,7 @@ const CAPABILITIES = [
   { icon: Sparkles, label: "Resumos" },
   { icon: ListChecks, label: "Tópicos" },
   { icon: Layers, label: "Flashcards" },
+  { icon: Eye, label: "Acessibilidade" },
 ] as const;
 
 /** Anéis concêntricos da marca, expandindo como um autofoco. Decorativos. */
@@ -106,12 +107,12 @@ export function LoginPage() {
 
           {/* Selos do que o app faz. Ícone e texto juntos: o ícone sozinho não
               informaria quem não conhece a convenção. */}
-          <ul className="mt-6 flex flex-wrap justify-center gap-2">
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 px-1">
             {CAPABILITIES.map(({ icon: Icon, label }) => (
               <li
                 key={label}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full border border-border",
+                  "flex items-center justify-center gap-1.5 rounded-full border border-border",
                   "bg-surface/70 px-3 py-1.5 text-xs font-medium text-text-muted backdrop-blur-sm",
                 )}
               >
@@ -156,11 +157,8 @@ export function LoginPage() {
             formulário — duas caixas empilhadas disputando a mesma atenção em
             uma tela com um único campo. Como texto solto, informa sem competir.
           */}
-          <p className="mt-5 flex items-start gap-2 px-2 text-center text-sm text-text-subtle">
-            <Camera size={15} className="mt-0.5 shrink-0 text-text-subtle" aria-hidden="true" />
-            <span>
-              Sem senha e sem cadastro. Seu nome basta — e tudo pode ser lido em voz alta.
-            </span>
+          <p className="mt-2.5 px-2 text-center text-sm text-text-subtle">
+            Sem senha e sem cadastro. Seu nome basta e tudo pode ser lido em voz alta.
           </p>
         </div>
       </main>
