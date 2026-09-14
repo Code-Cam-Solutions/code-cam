@@ -130,3 +130,32 @@ describe('applyReview', () => {
     );
   });
 });
+
+/*
+ * Estes dois travam a distinção que o PR #2 quase apagou ao fazer o botão
+ * "Quase" enviar AGAIN. Contar "quase" como erro na estatística é decisão de
+ * produto e está em `accuracy`; colapsar as duas notas no agendamento é outra
+ * coisa, e destrói informação que o algoritmo usa.
+ */
+describe('HARD é diferente de AGAIN no agendamento', () => {
+  it('preserva o progresso do cartão, enquanto AGAIN o reinicia', () => {
+    const maduro = newCard({ repetitions: 4, intervalDays: 30 });
+
+    const quase = applyReview(maduro, ReviewRating.HARD, NOW);
+    const errou = applyReview(maduro, ReviewRating.AGAIN, NOW);
+
+    expect(quase.repetitions).toBeGreaterThan(errou.repetitions);
+    expect(quase.intervalDays).toBeGreaterThan(errou.intervalDays);
+  });
+
+  it('devolve o cartão mais tarde que um erro, e mais cedo que um acerto pleno', () => {
+    const maduro = newCard({ repetitions: 4, intervalDays: 30 });
+
+    const errou = applyReview(maduro, ReviewRating.AGAIN, NOW).intervalDays;
+    const quase = applyReview(maduro, ReviewRating.HARD, NOW).intervalDays;
+    const acertou = applyReview(maduro, ReviewRating.GOOD, NOW).intervalDays;
+
+    expect(errou).toBeLessThan(quase);
+    expect(quase).toBeLessThan(acertou);
+  });
+});

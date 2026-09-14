@@ -126,7 +126,9 @@ export class StatsService {
     });
 
     const total = grouped.reduce((sum, row) => sum + row._count._all, 0);
-    const missed = grouped.find((row) => row.rating === ReviewRating.AGAIN)?._count._all ?? 0;
+    const missed =
+      (grouped.find((row) => row.rating === ReviewRating.AGAIN)?._count._all ?? 0) +
+      (grouped.find((row) => row.rating === ReviewRating.HARD)?._count._all ?? 0);
 
     return percent(total - missed, total);
   }

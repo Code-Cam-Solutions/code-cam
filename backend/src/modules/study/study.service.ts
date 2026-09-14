@@ -113,8 +113,8 @@ export class StudyService {
       hard,
       good,
       easy,
-      /** Proporção de cartões lembrados. Zero revisões devolve 0, não NaN. */
-      accuracy: total === 0 ? 0 : Math.round(((hard + good + easy) / total) * 100),
+      /** 'Quase' não conta como acerto para a sessão: a memória ainda não foi consolidada. */
+      accuracy: total === 0 ? 0 : Math.round(((good + easy) / total) * 100),
     };
   }
 

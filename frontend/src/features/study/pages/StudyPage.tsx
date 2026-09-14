@@ -67,6 +67,19 @@ function isPersisted(card: StudyCard): card is Flashcard {
  * "Muito fácil" fica de fora: na dúvida entre ele e "acertei", o custo de
  * escolher errado é um intervalo esticado demais e o conteúdo esquecido.
  */
+/*
+ * "Quase" envia HARD, e não AGAIN, mesmo contando como erro na estatística.
+ *
+ * São duas perguntas diferentes para a mesma resposta. Para o agendamento,
+ * lembrar com dificuldade não é o mesmo que não lembrar: AGAIN zera o cartão e
+ * o traz de volta na mesma sessão, enquanto HARD preserva o progresso com um
+ * intervalo menor. Para a estatística, "quase" não conta como acerto — e isso
+ * é decidido em `accuracy`, não aqui.
+ *
+ * Mandar AGAIN nos dois botões faria eles agendarem igual, tornaria o ramo
+ * HARD do algoritmo inalcançável e deixaria duas entradas com o mesmo `rating`
+ * nesta lista — que também alimenta as colunas da tela de resultado.
+ */
 const CHOICES = [
   {
     rating: "AGAIN",
@@ -701,7 +714,7 @@ function SessionSummaryView({
   draftSummary?: { summary: string; topics: string[] };
   onLeave: () => void;
 }) {
-  const remembered = tally.HARD + tally.GOOD;
+  const remembered = tally.GOOD;
   const accuracy = total === 0 ? 0 : Math.round((remembered / total) * 100);
   const grade = gradeFor(accuracy);
 
