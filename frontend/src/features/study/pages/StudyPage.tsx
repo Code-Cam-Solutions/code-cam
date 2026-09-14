@@ -67,9 +67,19 @@ function isPersisted(card: StudyCard): card is Flashcard {
  * "Muito fácil" fica de fora: na dúvida entre ele e "acertei", o custo de
  * escolher errado é um intervalo esticado demais e o conteúdo esquecido.
  */
-// 'Quase' ainda é erro para a sessão: ele não conta como lembrete, mesmo que
-// a pessoa tenha se aproximado da resposta. Isso mantém a métrica de acerto em
-// linha com a regra de produto e evita a contagem de 'quase' como sucesso.
+/*
+ * "Quase" envia HARD, e não AGAIN, mesmo contando como erro na estatística.
+ *
+ * São duas perguntas diferentes para a mesma resposta. Para o agendamento,
+ * lembrar com dificuldade não é o mesmo que não lembrar: AGAIN zera o cartão e
+ * o traz de volta na mesma sessão, enquanto HARD preserva o progresso com um
+ * intervalo menor. Para a estatística, "quase" não conta como acerto — e isso
+ * é decidido em `accuracy`, não aqui.
+ *
+ * Mandar AGAIN nos dois botões faria eles agendarem igual, tornaria o ramo
+ * HARD do algoritmo inalcançável e deixaria duas entradas com o mesmo `rating`
+ * nesta lista — que também alimenta as colunas da tela de resultado.
+ */
 const CHOICES = [
   {
     rating: "AGAIN",
@@ -79,9 +89,9 @@ const CHOICES = [
     surface: "border-danger/30 bg-danger-subtle text-danger hover:border-danger/60",
   },
   {
-    rating: "AGAIN",
+    rating: "HARD",
     label: "Quase",
-    ariaLabel: "Quase lembrei, mas ainda foi insuficiente",
+    ariaLabel: "Lembrei com dificuldade",
     Icon: Minus,
     surface: "border-warning/30 bg-warning-subtle text-warning hover:border-warning/60",
   },
