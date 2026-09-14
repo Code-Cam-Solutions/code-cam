@@ -8,15 +8,16 @@ import type { DraftFlashcard, ScanResult, StudyFormat } from "@/api";
  * isso, um `state` renomeado só falha em runtime, na mão do usuário.
  */
 export interface RouteState {
-  "/camera": { scanError?: string };
-  "/camera/review": { photo?: CapturedPhoto };
-  "/camera/formats": { photo?: CapturedPhoto };
+  /** `photos` volta preenchido quando a pessoa pede outra foto do mesmo material. */
+  "/camera": { scanError?: string; photos?: CapturedPhoto[] };
+  "/camera/review": { photos?: CapturedPhoto[] };
+  "/camera/formats": { photos?: CapturedPhoto[] };
   /**
    * `thumbnail` acompanha a foto até o fim do fluxo. Antes parava aqui: a
    * imagem era enviada para análise e descartada, e o material salvo ficava
    * sem a foto que o originou.
    */
-  "/processing": { imageBlob?: Blob; formats?: StudyFormat[]; thumbnail?: string | null };
+  "/processing": { imageBlobs?: Blob[]; formats?: StudyFormat[]; thumbnail?: string | null };
   "/result": { result?: ScanResult; formats?: StudyFormat[]; thumbnail?: string | null };
   /**
    * Cartões recém-gerados, ainda não salvos. Presente só no modo prática —

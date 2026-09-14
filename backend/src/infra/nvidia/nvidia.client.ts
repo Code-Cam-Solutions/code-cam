@@ -68,7 +68,7 @@ export class NvidiaClient implements VisionProvider {
     return Boolean(this.apiKey);
   }
 
-  async describeImage(prompt: string, image: ImagePart): Promise<string> {
+  async describeImages(prompt: string, images: readonly ImagePart[]): Promise<string> {
     if (!this.apiKey) {
       throw new ServiceUnavailableException('A análise por IA não está configurada.');
     }
@@ -80,7 +80,7 @@ export class NvidiaClient implements VisionProvider {
       for (let attempt = 1; attempt <= ATTEMPTS_PER_MODEL; attempt++) {
         try {
           const budget = attemptBudget(deadline - Date.now(), this.candidates.length - index);
-          return await withTimeout(this.request(model, prompt, image), budget);
+          return await withTimeout(this.request(model, prompt, images), budget);
         } catch (err) {
           lastError = err;
           const message = err instanceof Error ? err.message : String(err);
@@ -116,7 +116,11 @@ export class NvidiaClient implements VisionProvider {
   }
 
   /** Uma chamada ao endpoint. Erros de HTTP viram exceção com o corpo junto. */
-  private async request(model: string, prompt: string, image: ImagePart): Promise<string> {
+  private async request(
+    model: string,
+    prompt: string,
+    images: readonly ImagePart[],
+  ): Promise<string> {
     const response = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
@@ -130,12 +134,12 @@ export class NvidiaClient implements VisionProvider {
             role: 'user',
             content: [
               { type: 'text', text: prompt },
-              {
-                type: 'image_url',
-                // A API aceita data URL, que é exatamente o formato em que a
-                // imagem já chega do multipart — sem upload intermediário.
+              // A API aceita data URL, que é exatamente o formato em que a
+              // imagem já chega do multipart — sem upload intermediário.
+              ...images.map((image) => ({
+                type: 'image_url' as const,
                 image_url: { url: `data:${image.mimeType};base64,${image.base64}` },
-              },
+              })),
             ],
           },
         ],

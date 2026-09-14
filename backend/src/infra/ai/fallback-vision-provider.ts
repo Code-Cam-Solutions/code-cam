@@ -33,7 +33,7 @@ export class FallbackVisionProvider implements VisionProvider {
     return this.primary.isConfigured || this.secondary.isConfigured;
   }
 
-  async describeImage(prompt: string, image: ImagePart): Promise<string> {
+  async describeImages(prompt: string, images: readonly ImagePart[]): Promise<string> {
     const disponiveis = [this.primary, this.secondary].filter((p) => p.isConfigured);
 
     if (disponiveis.length === 0) {
@@ -44,7 +44,7 @@ export class FallbackVisionProvider implements VisionProvider {
 
     for (const [indice, fornecedor] of disponiveis.entries()) {
       try {
-        return await fornecedor.describeImage(prompt, image);
+        return await fornecedor.describeImages(prompt, images);
       } catch (err) {
         ultimoErro = err;
         const mensagem = err instanceof Error ? err.message : String(err);

@@ -69,7 +69,7 @@ export class GeminiClient implements VisionProvider {
   }
 
   /** Devolve o texto cru do modelo. Interpretá-lo é responsabilidade de quem chama. */
-  async describeImage(prompt: string, image: ImagePart): Promise<string> {
+  async describeImages(prompt: string, images: readonly ImagePart[]): Promise<string> {
     if (!this.genAI) {
       throw new ServiceUnavailableException('A análise por IA não está configurada.');
     }
@@ -84,7 +84,9 @@ export class GeminiClient implements VisionProvider {
           const result = await withTimeout(
             this.modelFor(modelName).generateContent([
               prompt,
-              { inlineData: { data: image.base64, mimeType: image.mimeType } },
+              ...images.map((image) => ({
+                inlineData: { data: image.base64, mimeType: image.mimeType },
+              })),
             ]),
             budget,
           );

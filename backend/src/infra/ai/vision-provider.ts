@@ -27,8 +27,13 @@ export interface VisionProvider {
   /**
    * Devolve o texto cru do modelo. Interpretá-lo é responsabilidade de quem
    * chama — a resposta é texto gerado, não contrato.
+   *
+   * Recebe uma lista porque um material pode não caber em uma foto: lousa
+   * larga, página dupla, caderno com continuação. As imagens vão juntas na
+   * mesma chamada e produzem um resumo só — são partes do mesmo conteúdo, não
+   * conteúdos diferentes.
    */
-  describeImage(prompt: string, image: ImagePart): Promise<string>;
+  describeImages(prompt: string, images: readonly ImagePart[]): Promise<string>;
 }
 
 /**

@@ -3,14 +3,16 @@ import {
   Body,
   Controller,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
+  UseFilters,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '@modules/auth/jwt-auth.guard';
-import { ScanService } from './scan.service';
+import { MAX_IMAGES_PER_SCAN, ScanService } from './scan.service';
+import { MulterErrorFilter } from './multer-error.filter';
 import { ScanRequestDto } from './dto/scan-request.dto';
 import { STUDY_FORMATS } from './scan.types';
 
@@ -19,12 +21,13 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 @Controller('scan')
 @UseGuards(JwtAuthGuard)
+@UseFilters(MulterErrorFilter)
 export class ScanController {
   constructor(private readonly scanService: ScanService) {}
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('file', {
+    FilesInterceptor('files', MAX_IMAGES_PER_SCAN, {
       // A imagem é analisada e descartada: nunca toca o disco do servidor.
       storage: memoryStorage(),
       limits: { fileSize: MAX_IMAGE_BYTES },
@@ -37,7 +40,7 @@ export class ScanController {
       },
     }),
   )
-  scan(@UploadedFile() file: Express.Multer.File | undefined, @Body() dto: ScanRequestDto) {
-    return this.scanService.analyzeImage(file, dto.formats ?? STUDY_FORMATS);
+  scan(@UploadedFiles() files: Express.Multer.File[] | undefined, @Body() dto: ScanRequestDto) {
+    return this.scanService.analyzeImages(files, dto.formats ?? STUDY_FORMATS);
   }
 }
