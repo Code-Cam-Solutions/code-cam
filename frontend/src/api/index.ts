@@ -31,9 +31,18 @@ export function login(name: string): Promise<AuthSession> {
 
 // ─── Captura ───────────────────────────────────────────────────────────────
 
-export function scanImage(image: Blob, formats: StudyFormat[]): Promise<ScanResult> {
+/**
+ * Envia de uma a três fotos do mesmo material e devolve uma análise só.
+ *
+ * As fotos vão juntas de propósito: são partes de um conteúdo único — lousa
+ * larga, página dupla, caderno com continuação — e o que volta é um resumo, um
+ * conjunto de tópicos e um conjunto de flashcards cobrindo todas.
+ */
+export function scanImages(images: Blob[], formats: StudyFormat[]): Promise<ScanResult> {
   const body = new FormData();
-  body.append("file", image, "captura.jpg");
+  images.forEach((image, index) => {
+    body.append("files", image, `captura-${index + 1}.jpg`);
+  });
   // O backend recebe a lista como texto separado por vírgula: multipart não
   // transporta array.
   body.append("formats", formats.join(","));

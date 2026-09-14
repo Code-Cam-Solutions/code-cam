@@ -48,7 +48,8 @@ const DEFAULT_SELECTION: StudyFormat[] = ["summary", "flashcards"];
 
 export function FormatSelectionPage() {
   const navigate = useNavigate();
-  const { photo } = useRouteState<"/camera/formats">();
+  const { photos } = useRouteState<"/camera/formats">();
+  const photo = photos?.[0];
   const [selected, setSelected] = useState<StudyFormat[]>(DEFAULT_SELECTION);
 
   useEffect(() => {
@@ -80,7 +81,13 @@ export function FormatSelectionPage() {
   function handleGenerate() {
     if (!photo || selected.length === 0) return;
     void navigate("/processing", {
-      state: { imageBlob: photo.blob, formats: selected, thumbnail: photo.thumbnail },
+      state: {
+        imageBlobs: (photos ?? []).map((p) => p.blob),
+        formats: selected,
+        // A miniatura guardada é a da primeira foto: é ela que identifica o
+        // material na lista, e mostrar três miniaturas ali só encheria a linha.
+        thumbnail: photo.thumbnail,
+      },
       replace: true,
     });
   }

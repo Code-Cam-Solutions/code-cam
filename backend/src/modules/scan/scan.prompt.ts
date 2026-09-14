@@ -68,20 +68,34 @@ const FIELD_SPECS: Record<StudyFormat, FieldSpec> = {
   },
 };
 
-export function buildScanPrompt(formats: readonly StudyFormat[]): string {
+export function buildScanPrompt(formats: readonly StudyFormat[], imageCount = 1): string {
   const requested = formats.length > 0 ? formats : (['summary'] as const);
 
   const schemaLines = [
     '"title": "Nome do assunto, até 60 caracteres"',
     ...requested.map((format) => FIELD_SPECS[format].schema),
-    '"rawText": "Todo o texto legível da imagem, transcrito literalmente"',
+    imageCount > 1
+      ? '"rawText": "Todo o texto legível das imagens, transcrito literalmente e na ordem em que aparecem"'
+      : '"rawText": "Todo o texto legível da imagem, transcrito literalmente"',
   ];
 
   const rules = requested.map((format) => FIELD_SPECS[format].rules.join('\n')).join('\n\n');
 
+  /*
+   * Com mais de uma foto, dizer que elas são o mesmo material é o que decide o
+   * resultado. Sem isso o modelo tende a descrever cada imagem em separado, e
+   * sai um resumo colado de dois pedaços em vez de um texto só — que é
+   * justamente o contrário do que a pessoa pediu ao fotografar a lousa em
+   * partes.
+   */
+  const subject =
+    imageCount > 1
+      ? `Analise estas ${imageCount} imagens. Elas são partes do MESMO material de estudo — lousa, caderno, livro ou folha —, fotografadas em sequência porque não cabiam em uma foto. Trate-as como um conteúdo único e contínuo: um resumo, um conjunto de tópicos e um conjunto de flashcards cobrindo tudo. Não descreva as imagens separadamente nem mencione que são várias fotos.`
+      : 'Analise esta imagem de material de estudo — lousa, caderno, livro ou folha — e devolva um JSON.';
+
   return `Você prepara material de estudo para estudantes, e boa parte deles usa leitor de tela ou tem dislexia. O que você escrever será ouvido em voz alta tantas vezes quanto lido.
 
-Analise esta imagem de material de estudo — lousa, caderno, livro ou folha — e devolva um JSON.
+${subject}
 
 Responda APENAS com o JSON. Sem markdown, sem cercas de código, sem comentário antes ou depois.
 

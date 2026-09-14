@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCamera, type CapturedPhoto } from "@/features/capture/hooks/useCamera";
+import { MAX_PHOTOS_PER_SCAN } from "@/features/capture/lib/limits";
 import { useRouteState } from "@/shared/lib/navigation";
 import { useAccessibility } from "@/shared/context/AccessibilityContext";
 import { Button, Card, cn } from "@/design-system";
@@ -45,7 +46,7 @@ function readGuidedPreference(): boolean {
 
 export function CameraPage() {
   const navigate = useNavigate();
-  const { scanError } = useRouteState<"/camera">();
+  const { scanError, photos: existing } = useRouteState<"/camera">();
   const { speak, stopSpeaking } = useAccessibility();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,8 +110,15 @@ export function CameraPage() {
     }
   }
 
+  /**
+   * Soma a foto nova às que já existem e volta para a conferência.
+   *
+   * As anteriores chegam pelo estado da rota porque "adicionar outra foto"
+   * traz a pessoa de volta a esta tela — sem carregá-las, cada nova captura
+   * apagaria as anteriores.
+   */
   function goToReview(photo: CapturedPhoto) {
-    void navigate("/camera/review", { state: { photo } });
+    void navigate("/camera/review", { state: { photos: [...(existing ?? []), photo] } });
   }
 
   async function handleCapture() {
@@ -169,7 +177,11 @@ export function CameraPage() {
           <X size={22} aria-hidden="true" />
         </button>
 
-        <h1 className="text-lg font-bold text-accent">CodeCam</h1>
+        <h1 className="text-lg font-bold text-accent">
+          {existing && existing.length > 0
+            ? `Foto ${existing.length + 1} de ${MAX_PHOTOS_PER_SCAN}`
+            : "CodeCam"}
+        </h1>
 
         <button
           type="button"

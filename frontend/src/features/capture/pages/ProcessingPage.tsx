@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Sparkles } from "lucide-react";
-import { scanImage } from "@/api";
+import { scanImages } from "@/api";
 import { useRouteState } from "@/shared/lib/navigation";
 import { Card, Progress, cn } from "@/design-system";
 
@@ -19,7 +19,7 @@ const TICK_MS = 140;
 
 export function ProcessingPage() {
   const navigate = useNavigate();
-  const { imageBlob, formats, thumbnail } = useRouteState<"/processing">();
+  const { imageBlobs, formats, thumbnail } = useRouteState<"/processing">();
   const hasFired = useRef(false);
   const [progress, setProgress] = useState(6);
   /** Segundos desde o início, só para escolher a mensagem de espera. */
@@ -27,7 +27,7 @@ export function ProcessingPage() {
 
   useEffect(() => {
     // Guard: if accessed directly without a blob, send back to camera
-    if (!imageBlob) {
+    if (!imageBlobs || imageBlobs.length === 0) {
       void navigate("/camera", { replace: true });
       return;
     }
@@ -36,9 +36,9 @@ export function ProcessingPage() {
     if (hasFired.current) return;
     hasFired.current = true;
 
-    async function process(blob: Blob) {
+    async function process(blobs: Blob[]) {
       try {
-        const result = await scanImage(blob, formats ?? ["summary", "topics", "flashcards"]);
+        const result = await scanImages(blobs, formats ?? ["summary", "topics", "flashcards"]);
         await navigate("/result", { state: { result, formats, thumbnail }, replace: true });
       } catch (err) {
         const message =
@@ -47,7 +47,7 @@ export function ProcessingPage() {
       }
     }
 
-    void process(imageBlob);
+    void process(imageBlobs);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
