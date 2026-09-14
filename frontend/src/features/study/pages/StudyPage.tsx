@@ -67,6 +67,9 @@ function isPersisted(card: StudyCard): card is Flashcard {
  * "Muito fácil" fica de fora: na dúvida entre ele e "acertei", o custo de
  * escolher errado é um intervalo esticado demais e o conteúdo esquecido.
  */
+// 'Quase' ainda é erro para a sessão: ele não conta como lembrete, mesmo que
+// a pessoa tenha se aproximado da resposta. Isso mantém a métrica de acerto em
+// linha com a regra de produto e evita a contagem de 'quase' como sucesso.
 const CHOICES = [
   {
     rating: "AGAIN",
@@ -76,9 +79,9 @@ const CHOICES = [
     surface: "border-danger/30 bg-danger-subtle text-danger hover:border-danger/60",
   },
   {
-    rating: "HARD",
+    rating: "AGAIN",
     label: "Quase",
-    ariaLabel: "Lembrei com dificuldade",
+    ariaLabel: "Quase lembrei, mas ainda foi insuficiente",
     Icon: Minus,
     surface: "border-warning/30 bg-warning-subtle text-warning hover:border-warning/60",
   },
@@ -701,7 +704,7 @@ function SessionSummaryView({
   draftSummary?: { summary: string; topics: string[] };
   onLeave: () => void;
 }) {
-  const remembered = tally.HARD + tally.GOOD;
+  const remembered = tally.GOOD;
   const accuracy = total === 0 ? 0 : Math.round((remembered / total) * 100);
   const grade = gradeFor(accuracy);
 
