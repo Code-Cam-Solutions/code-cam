@@ -61,7 +61,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-describedby={describedBy}
           className={cn(
             "min-h-[3rem] w-full rounded-lg px-3.5 py-2.5",
-            "bg-surface text-base text-text placeholder:text-[0.85rem] placeholder:text-text-subtle sm:placeholder:text-sm",
+            /*
+             * `text-base` é obrigatório, não estético: o Safari do iPhone dá
+             * zoom automático em campo com fonte menor que 16px, e a tela salta
+             * quando o teclado abre.
+             */
+            "bg-surface text-base text-text placeholder:text-xs placeholder:text-text-subtle",
             "border transition-colors duration-150",
             error !== undefined
               ? "border-danger"
