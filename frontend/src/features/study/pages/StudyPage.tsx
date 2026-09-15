@@ -39,7 +39,8 @@ import {
 } from "@/design-system";
 import { Navbar } from "@/shared/components/Navbar";
 import { TTSButton } from "@/shared/components/TTSButton";
-import { ReadableProse, ReadingMark } from "@/shared/components/ReadingAid";
+import { EmojiText, ReadableProse, ReadingMark } from "@/shared/components/ReadingAid";
+import { withoutLeadingEmoji } from "@/shared/lib/emoji";
 import { useReadingAid } from "@/shared/hooks/useReadingAid";
 import { useAccessibility } from "@/shared/context/AccessibilityContext";
 import { useAsync } from "@/shared/hooks/useAsync";
@@ -590,7 +591,7 @@ export function StudyPage() {
                 Pergunta
               </span>
               <span className="relative text-xl leading-snug font-semibold text-balance">
-                {current.question}
+                <EmojiText value={current.question} />
               </span>
               <span className="relative text-xs opacity-75" aria-hidden="true">
                 Toque para ver a resposta
@@ -627,7 +628,9 @@ export function StudyPage() {
             virar, porque um botão não pode conter outro. */}
         <div className="mt-4 flex justify-center">
           <TTSButton
-            text={flipped ? current.answer : current.question}
+            // Sem o emoji: lido em voz alta, ele viraria o nome do símbolo
+            // no meio da pergunta.
+            text={flipped ? current.answer : withoutLeadingEmoji(current.question)}
             label={flipped ? "resposta do cartão" : "pergunta do cartão"}
           />
         </div>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CircleHelp, CornerDownRight, Lightbulb, Square } from "lucide-react";
 import { useReadingAid } from "@/shared/hooks/useReadingAid";
+import { splitLeadingEmoji } from "@/shared/lib/emoji";
 import { splitSentences } from "@/shared/lib/sentences";
 import { cn } from "@/design-system";
 
@@ -79,6 +80,34 @@ export function ReadableProse({ text, className }: { text: string; className?: s
         </p>
       ))}
     </div>
+  );
+}
+
+/**
+ * Texto que pode vir com um emoji de abertura, vindo da IA.
+ *
+ * O emoji só aparece com o apoio de leitura ligado; sem ele, o texto é exibido
+ * limpo. Como a separação acontece na hora de desenhar, e não no banco, ligar e
+ * desligar a preferência vale inclusive para o material salvo antes.
+ */
+export function EmojiText({ value, className }: { value: string; className?: string }) {
+  const aid = useReadingAid();
+  const { emoji, text } = splitLeadingEmoji(value);
+
+  if (!aid || !emoji) return <span className={className}>{text}</span>;
+
+  return (
+    <span className={cn("inline-flex items-baseline gap-1.5", className)}>
+      {/*
+        `aria-hidden` porque o emoji é pista visual: anunciado por extenso, um
+        leitor de tela leria "muda planta" no meio da frase. O texto ao lado já
+        diz tudo que importa.
+      */}
+      <span aria-hidden="true" className="not-italic">
+        {emoji}
+      </span>
+      <span>{text}</span>
+    </span>
   );
 }
 

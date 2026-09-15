@@ -36,7 +36,7 @@ const FIELD_SPECS: Record<StudyFormat, FieldSpec> = {
     ],
   },
   topics: {
-    schema: '"topics": ["afirmação curta e completa", "…"]',
+    schema: '"topics": ["<emoji> afirmação curta e completa", "…"]',
     rules: [
       'TÓPICOS',
       '- Só o que está na imagem. Diferente do resumo, aqui não se acrescenta nada: cada tópico precisa ter origem visível no material fotografado.',
@@ -45,13 +45,16 @@ const FIELD_SPECS: Record<StudyFormat, FieldSpec> = {
       '- Nunca reformule o mesmo fato em dois tópicos. "É essencial para as plantas" e "é essencial para a vida na Terra" são o mesmo tópico escrito duas vezes.',
       '- Não transforme legenda em tópico. Se a imagem traz "CO₂ → gás carbônico", isso é vocabulário, não um tópico: escreva o que o gás carbônico FAZ no processo.',
       '- Cada tópico é uma afirmação que ensina algo sozinha, não um rótulo. Escreva "A clorofila capta a energia da luz solar", não "Clorofila".',
-      '- Uma linha cada, no máximo 90 caracteres. Sem ponto final.',
+      '- Comece cada tópico com UM emoji que represente o assunto dele, seguido de espaço: "🌱 A clorofila capta a energia da luz solar". O emoji é âncora visual para quem tem dislexia, e o app o esconde de quem não ativou esse apoio.',
+      '- Escolha o emoji pelo conteúdo, não por decoração. Processo biológico pede 🌱 ou 🧬; cálculo pede 📐 ou 🔢; data ou período pede 📅. Se nenhum representar o tópico, comece com 📌 em vez de forçar um sem relação.',
+      '- Um emoji por tópico, sempre no início, nunca no meio nem no fim. Dois emojis seguidos ou um no meio da frase atrapalham a leitura.',
+      '- Uma linha cada, no máximo 90 caracteres contando o emoji. Sem ponto final.',
       '- Ordene do mais geral ao mais específico, para que a lista possa ser lida como um roteiro de estudo.',
       '- Não repita entre tópicos o que já foi dito no resumo com as mesmas palavras.',
     ],
   },
   flashcards: {
-    schema: '"flashcards": [{ "question": "…?", "answer": "…" }]',
+    schema: '"flashcards": [{ "question": "<emoji> …?", "answer": "…" }]',
     rules: [
       'FLASHCARDS',
       '- Só o que está na imagem. Cada pergunta e cada resposta têm de sair do material fotografado — é aqui que a invenção causa o dano maior, porque o cartão volta semanas depois como se fosse matéria da aula.',
@@ -64,6 +67,9 @@ const FIELD_SPECS: Record<StudyFormat, FieldSpec> = {
       '- Nunca cite a imagem. "Segundo a lousa" e "conforme a figura" tornam o cartão inútil longe dela.',
       '- Tire os cartões do texto que você transcreveu, não do resumo que escreveu.',
       '- Antes de fechar a lista, releia: dois cartões que aceitam a mesma resposta são um cartão só. "Por que é essencial?" e "Qual é a importância?" são a mesma pergunta — descarte uma.',
+      '- Comece cada PERGUNTA com UM emoji que represente o assunto dela, seguido de espaço: "🌱 Por que a planta precisa de luz?". Serve de âncora visual para quem tem dislexia, e o app o esconde de quem não ativou esse apoio.',
+      '- A RESPOSTA não leva emoji. Ela é o texto que a pessoa lê para conferir se acertou, e símbolo ali atrapalha.',
+      '- Escolha pelo conteúdo, nunca por decoração. Se nenhum emoji representar a pergunta, comece com 📌.',
     ],
   },
 };
