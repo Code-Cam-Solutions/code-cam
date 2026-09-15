@@ -9,9 +9,9 @@
 /**
  * Onde a API está.
  *
- * `VITE_API_URL` manda quando existe — é assim que o deploy aponta para o
- * Railway. Sem ela, o endereço é deduzido de onde a própria página está sendo
- * servida, e não fixado em `localhost`.
+ * `VITE_API_URL` manda quando existe — é assim que o build da Vercel aponta
+ * para o backend publicado. Sem ela, o endereço é deduzido de onde a própria
+ * página está sendo servida, e não fixado em `localhost`.
  *
  * A diferença importa porque o CodeCam é aberto por QR Code, no celular:
  * a página vem de `http://192.168.0.7:5173` e, com `localhost` no código, o

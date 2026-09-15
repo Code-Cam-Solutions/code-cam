@@ -39,7 +39,15 @@ async function bootstrap() {
   );
 
   const port = config.get('PORT', { infer: true });
-  await app.listen(port);
+  /*
+   * `0.0.0.0` explícito, e não o padrão.
+   *
+   * Plataformas que rodam o app em contêiner — Render, Fly, Docker — encaminham
+   * tráfego de fora para dentro dele. Um servidor ligado apenas ao laço local
+   * aceitaria conexões só de dentro do próprio contêiner, e a plataforma
+   * marcaria o deploy como não saudável sem nenhum erro no log da aplicação.
+   */
+  await app.listen(port, '0.0.0.0');
   new Logger('Bootstrap').log(`CodeCam backend disponível na porta ${port}`);
 }
 

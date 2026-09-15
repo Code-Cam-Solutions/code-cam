@@ -226,15 +226,94 @@ teto de 90 segundos para a análise inteira.
 
 ## Deploy
 
-**Não há ambiente publicado, e isso é uma decisão.** Houve uma tentativa no
-Railway com frontend na Vercel; o banco saiu do ar e a migração foi arquivada.
-O projeto roda local — banco, backend e frontend na máquina de quem programa.
+Três serviços, cada um no que faz melhor. **A ordem importa**: o backend não
+sobe sem banco, e o frontend não existe sem o endereço do backend.
 
-Se um dia isso mudar, o backend é um NestJS comum (`npm run build` e
-`npm run start:prod`, com `DATABASE_URL` apontando para o banco de destino) e o
-frontend é um build estático do Vite que precisa de duas coisas no servidor:
-reescrever todas as rotas para `index.html`, por ser uma SPA, e receber
-`VITE_API_URL` apontando para a API publicada.
+| Ordem | Peça     | Serviço  |
+| ----- | -------- | -------- |
+| 1º    | Banco    | Supabase |
+| 2º    | Backend  | Render   |
+| 3º    | Frontend | Vercel   |
+
+### 1. Banco no Supabase
+
+Crie um projeto e pegue a string de conexão em **Connect**.
+
+> ⚠️ **Use a do _Session pooler_, não a _Direct connection_.**
+>
+> A conexão direta do Supabase é IPv6 por padrão, e o Render faz tráfego de
+> saída por IPv4 — a direta falha com "can't reach database server" sem dizer
+> por quê. A do pooler em modo sessão é IPv4 e é a indicada para servidor de
+> processo longo, que é o caso do Render.
+>
+> Ela tem o usuário no formato `postgres.<ref-do-projeto>` e porta `5432`.
+
+Depois, do seu computador, aplique o schema no banco novo:
+
+```bash
+cd backend
+DATABASE_URL="<string do session pooler>" npx prisma migrate deploy
+```
+
+### 2. Backend no Render
+
+**New → Web Service**, apontando para este repositório.
+
+| Campo             | Valor                                                 |
+| ----------------- | ----------------------------------------------------- |
+| Root Directory    | `backend`                                             |
+| Build Command     | `npm install && npx prisma generate && npm run build` |
+| Start Command     | `npm run start:prod`                                  |
+| Health Check Path | `/health`                                             |
+
+Variáveis de ambiente:
+
+| Variável         | Valor                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| `DATABASE_URL`   | a string do session pooler                                         |
+| `JWT_SECRET`     | 32 caracteres ou mais — **gere uma nova, não reaproveite a local** |
+| `AI_PROVIDER`    | `gemini` ou `nvidia`                                               |
+| `GEMINI_API_KEY` | sua chave                                                          |
+| `NVIDIA_API_KEY` | sua chave                                                          |
+| `FRONTEND_URL`   | preencha no passo 3                                                |
+
+`PORT` não precisa ser definida: o Render injeta a dela, e o app a lê.
+
+> O plano gratuito **hiberna após 15 minutos** sem tráfego, e a primeira
+> requisição depois disso leva cerca de um minuto. Vale abrir o app antes de
+> uma apresentação.
+
+### 3. Frontend na Vercel
+
+**New Project**, importando este repositório.
+
+| Campo            | Valor      |
+| ---------------- | ---------- |
+| Root Directory   | `frontend` |
+| Framework Preset | Vite       |
+
+Variável de ambiente:
+
+| Variável       | Valor                                                    |
+| -------------- | -------------------------------------------------------- |
+| `VITE_API_URL` | a URL do Render, ex.: `https://codecam-api.onrender.com` |
+
+O `vercel.json` já está no repositório e reescreve todas as rotas para o
+`index.html` — sem ele, recarregar a página em `/folders` dá 404, porque o
+servidor procuraria um arquivo com esse nome.
+
+### 4. Fechar o ciclo
+
+Volte ao Render e preencha `FRONTEND_URL` com o domínio da Vercel. Sem isso o
+CORS recusa as chamadas, e o app carrega mas não consegue nem fazer login.
+
+### Antes de abrir ao público
+
+O app **não tem senha**: qualquer pessoa entra digitando um nome, e quem
+digitar um nome já existente assume aquela conta, com os materiais dela. Foi
+uma decisão deliberada para uso em sala, onde o link circula entre pessoas
+conhecidas. Distribuído em aberto, significa que qualquer um lê e apaga o
+conteúdo de qualquer outro.
 
 ---
 
