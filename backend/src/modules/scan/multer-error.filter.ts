@@ -37,7 +37,18 @@ export class MulterErrorFilter extends BaseExceptionFilter {
       typeof response === 'string'
         ? response
         : ((response as { message?: unknown }).message ?? exception.message);
-    const text = Array.isArray(raw) ? raw.join(' ') : String(raw);
+
+    /*
+     * `String(raw)` produziria "[object Object]" quando a mensagem vier como
+     * objeto — e aí nenhuma das expressões abaixo casaria, devolvendo ao
+     * usuário o texto cru do Multer que este filtro existe para traduzir.
+     * Só texto e lista de texto interessam; o resto não é mensagem.
+     */
+    const text = Array.isArray(raw)
+      ? raw.filter((part): part is string => typeof part === 'string').join(' ')
+      : typeof raw === 'string'
+        ? raw
+        : '';
 
     const known = TRANSLATIONS.find((entry) => entry.matches.test(text));
 
