@@ -22,7 +22,8 @@ import { Badge, Button, Card, Dialog, EmptyState, Input, SkeletonList, cn } from
 import { Navbar } from "@/shared/components/Navbar";
 import { BottomNav } from "@/shared/components/BottomNav";
 import { TTSButton } from "@/shared/components/TTSButton";
-import { MarkedItem, ReadableProse } from "@/shared/components/ReadingAid";
+import { EmojiText, MarkedItem, ReadableProse } from "@/shared/components/ReadingAid";
+import { withoutLeadingEmoji } from "@/shared/lib/emoji";
 import { ToastContainer, useToast } from "@/shared/components/Toast";
 
 /**
@@ -282,10 +283,12 @@ export function ResultPage() {
                         a leitura da frase. */}
                     <MarkedItem kind="topic">
                       <Badge tone="accent" className="max-w-full whitespace-normal">
-                        {topic}
+                        <EmojiText value={topic} />
                       </Badge>
                     </MarkedItem>
-                    <TTSButton text={topic} label={`tópico ${i + 1}`} />
+                    {/* A fala recebe o texto sem o emoji: um leitor de tela o
+                        anunciaria por extenso no meio do tópico. */}
+                    <TTSButton text={withoutLeadingEmoji(topic)} label={`tópico ${i + 1}`} />
                   </li>
                 ))}
               </ul>
