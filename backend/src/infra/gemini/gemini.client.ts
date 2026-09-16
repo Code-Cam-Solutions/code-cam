@@ -32,7 +32,6 @@ import {
  */
 const FALLBACK_MODELS = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 
-
 /**
  * Fronteira com o Google Gemini.
  *
@@ -228,8 +227,3 @@ export class GeminiClient implements VisionProvider {
     return new ServiceUnavailableException('Não foi possível analisar a imagem. Tente novamente.');
   }
 }
-
-
-
-
-

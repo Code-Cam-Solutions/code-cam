@@ -77,9 +77,7 @@ export class ScanService {
     }
 
     if (files.length > MAX_IMAGES_PER_SCAN) {
-      throw new BadRequestException(
-        `Envie no máximo ${MAX_IMAGES_PER_SCAN} fotos por material.`,
-      );
+      throw new BadRequestException(`Envie no máximo ${MAX_IMAGES_PER_SCAN} fotos por material.`);
     }
 
     for (const file of files) {

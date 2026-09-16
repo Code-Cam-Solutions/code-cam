@@ -1,4 +1,12 @@
-import { attemptBudget, backoffDelay, buildCandidates, isModelUnavailable, isOverloaded, isTimeout, isTransient } from './resilience';
+import {
+  attemptBudget,
+  backoffDelay,
+  buildCandidates,
+  isModelUnavailable,
+  isOverloaded,
+  isTimeout,
+  isTransient,
+} from './resilience';
 
 /*
  * O caso que originou este arquivo: `gemini-1.5-flash` estava fixo no código e
