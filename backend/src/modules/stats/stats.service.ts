@@ -87,9 +87,13 @@ export class StatsService {
     timezone: string,
     days: number,
   ): Promise<ActivityDay[]> {
-    const since = new Date();
-    since.setDate(since.getDate() - (days - 1));
-    since.setHours(0, 0, 0, 0);
+    /*
+     * Margem de um dia a mais do que a janela pedida. O corte exato de cada dia
+     * é feito depois, casando as chaves; aqui só é preciso não deixar de fora
+     * nenhuma revisão que possa pertencer ao primeiro dia local, cujo início em
+     * UTC cai antes ou depois conforme o fuso.
+     */
+    const since = new Date(Date.now() - (days + 1) * 24 * 60 * 60 * 1000);
 
     /*
      * A dupla conversão de fuso não é redundância.
@@ -123,12 +127,10 @@ export class StatsService {
     // represente tempo, e não apenas a ordem das sessões.
     const byDay = new Map(rows.map((row) => [row.day, row.reviews]));
 
-    return Array.from({ length: days }, (_, index) => {
-      const date = new Date(since);
-      date.setDate(since.getDate() + index);
-      const key = localDate(date, timezone);
-      return { date: key, reviews: byDay.get(key) ?? 0 };
-    });
+    return lastDays(days, timezone).map((key) => ({
+      date: key,
+      reviews: byDay.get(key) ?? 0,
+    }));
   }
 
   /** Proporção de revisões em que o cartão foi lembrado, na janela informada. */
@@ -154,6 +156,34 @@ export class StatsService {
 /** Percentual inteiro, com divisão por zero devolvendo 0 em vez de NaN. */
 function percent(part: number, whole: number): number {
   return whole === 0 ? 0 : Math.round((part / whole) * 100);
+}
+
+/**
+ * Os últimos `days` dias do calendário do estudante, terminando em hoje.
+ *
+ * A versão anterior somava dias a um instante e convertia cada um para o fuso
+ * local. Parece a mesma coisa e não é: o instante era meia-noite UTC, que em
+ * São Paulo é 21h do dia anterior — então toda a série saía deslocada um dia
+ * para trás, e o dia de hoje simplesmente não existia no gráfico. Como
+ * `reviewedToday` é o último item da série, ele passava a dizer quantos cartões
+ * foram revisados *ontem*, e a sequência era contada sobre uma janela que já
+ * começava desatualizada.
+ *
+ * O defeito valia das 0h às 21h, e desaparecia à noite — quando a data em UTC
+ * alcança a de São Paulo. Foi assim que ele passou pelo teste que consertou o
+ * agrupamento: o teste rodou às 21h.
+ *
+ * A conta agora é feita sobre a data do calendário, não sobre instantes. Os
+ * dias entram em UTC apenas como veículo de aritmética de calendário, onde não
+ * existe horário de verão para atrapalhar.
+ */
+function lastDays(days: number, timezone: string): string[] {
+  const [year, month, day] = localDate(new Date(), timezone).split('-').map(Number);
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(Date.UTC(year, month - 1, day - (days - 1 - index)));
+    return date.toISOString().slice(0, 10);
+  });
 }
 
 /** Data local em ISO, no fuso informado. */
@@ -191,4 +221,4 @@ function currentStreak(activity: ActivityDay[]): number {
   return streak;
 }
 
-export { currentStreak };
+export { currentStreak, lastDays };
