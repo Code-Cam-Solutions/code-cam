@@ -1,3 +1,14 @@
+/*
+ * Os testes rodam com `TZ=UTC`, definido no script do package.json — o mesmo
+ * fuso do servidor em produção.
+ *
+ * Não é preciosismo. As estatísticas convertem instantes para o fuso do
+ * estudante, e um defeito nessa conversão só aparece quando o servidor está em
+ * um fuso diferente do dele. Rodando na máquina de quem desenvolve, que aqui
+ * fica em São Paulo, o código antigo passava — e o gráfico de atividade
+ * chegava à produção sem o dia de hoje.
+ */
+
 /** @type {import('jest').Config} */
 module.exports = {
   moduleFileExtensions: ["js", "json", "ts"],
