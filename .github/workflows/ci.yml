@@ -31,11 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 20 é o piso declarado em `engines` e no README. Checar no piso é o
-      # que dá sentido à promessa: se passa aqui, passa nas versões acima.
+      # Node 24 porque as ferramentas de teste do front (jsdom, undici,
+      # jest-dom) já exigem 22+. Checar em 20, o piso antigo, não provava nada:
+      # o jsdom nem carregava, e os 155 testes do front não chegavam a rodar.
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -73,7 +74,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -103,7 +104,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: package-lock.json
 
