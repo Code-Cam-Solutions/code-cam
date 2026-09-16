@@ -15,9 +15,12 @@
     -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-    <!-- A cor da barra do navegador acompanha o tema. -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7fa" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e0e13" />
+    <!-- A cor da barra do sistema. Antes eram duas metas presas a
+         `prefers-color-scheme`, o que amarrava a barra ao aparelho e não à
+         escolha feita em Ajustes: quem usava o celular no escuro e pedia tema
+         claro continuava com a barra preta. Agora é uma só, ajustada pelo
+         script abaixo antes da primeira pintura e mantida pelo app depois. -->
+    <meta name="theme-color" id="meta-theme-color" content="#0e0e13" />
 
     <meta
       name="description"
@@ -55,6 +58,16 @@
           if (saved.highContrast) root.dataset.contrast = "high";
           if (saved.openDyslexic) root.dataset.dyslexic = "true";
           root.dataset.fontSize = saved.fontSize || "md";
+
+          // Os mesmos valores de `--ds-bg` dos tokens. Repetidos aqui de
+          // propósito: a folha de estilo pode ainda não ter sido analisada
+          // quando este script roda, e ler o token devolveria vazio. O app
+          // reassume a partir do token assim que monta.
+          var barra = { light: "#f7f7fa", dark: "#0e0e13" };
+          if (saved.highContrast) barra = { light: "#ffffff", dark: "#000000" };
+
+          var meta = document.getElementById("meta-theme-color");
+          if (meta) meta.setAttribute("content", barra[theme]);
         } catch (e) {
           // Preferências ilegíveis: o CSS assume o padrão do sistema sozinho.
         }

@@ -92,12 +92,33 @@ export default defineConfig({
 
         runtimeCaching: [
           {
+            /*
+             * O painel de progresso nunca vem de cache.
+             *
+             * Ele estava na regra abaixo, e o resultado no celular era a
+             * sequência e a porcentagem de domínio congeladas: o usuário
+             * revisava os cartões, voltava para o início e via os números
+             * antigos. O backend hiberna depois de 15 minutos no plano
+             * gratuito e leva ~30s para acordar; os três segundos de espera
+             * da regra abaixo estouravam sempre, e o service worker servia
+             * uma resposta guardada — que podia ter até uma semana.
+             *
+             * O que salvava a tela de dado velho piorava esta, porque aqui o
+             * dado velho não é uma versão anterior do material: é um número
+             * errado sobre o esforço de quem estudou. Vale mais a espera, ou
+             * um erro honesto com botão de tentar de novo, que já existe.
+             */
+            urlPattern: ({ url, request }) =>
+              request.method === "GET" && url.pathname.startsWith("/stats"),
+            handler: "NetworkOnly",
+          },
+          {
             // Leitura da API. Rede primeiro, cache como rede de segurança: o
             // dado fresco vence sempre que houver conexão, e os três segundos
-            // de espera são o limite antes de o app parecer travado.
+            // de espera são o limite antes de o app parecer travado. Serve
+            // para material já lido, que envelhece bem — não para contagem.
             urlPattern: ({ url, request }) =>
-              request.method === "GET" &&
-              /\/(contents|folders|study|stats|search)/.test(url.pathname),
+              request.method === "GET" && /\/(contents|folders|study|search)/.test(url.pathname),
             handler: "NetworkFirst",
             options: {
               cacheName: "codecam-api",
