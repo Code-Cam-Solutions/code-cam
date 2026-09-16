@@ -254,9 +254,7 @@ function SummaryPeek({
 
               {dados.topics.length > 0 && (
                 <div>
-                  <h3 className="mb-2 text-sm font-semibold text-text-subtle uppercase">
-                    Tópicos
-                  </h3>
+                  <h3 className="mb-2 text-sm font-semibold text-text-subtle uppercase">Tópicos</h3>
                   <ul className="flex flex-wrap gap-2">
                     {dados.topics.map((topic) => (
                       <li key={topic}>

@@ -1,0 +1,117 @@
+name: CI
+
+# Roda no que vai para a `main` e em todo pull request. Os dois importam por
+# motivos diferentes: no PR a checagem acontece antes de alguém revisar, e na
+# `main` ela confirma que o merge não quebrou nada — é o mesmo commit que o
+# Render vai publicar automaticamente.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um push novo na mesma branch cancela a execução anterior. Sem isto, um PR com
+# três commits seguidos ocupa três execuções para responder sobre código que já
+# foi substituído.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# O workflow só lê o repositório. Nada aqui comenta em PR, publica release ou
+# escreve em qualquer lugar, então não recebe permissão para isso.
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 20 é o piso declarado em `engines` e no README. Checar no piso é o
+      # que dá sentido à promessa: se passa aqui, passa nas versões acima.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # O client do Prisma nasce do schema e não é versionado. Sem este passo,
+      # `@prisma/client` não tem tipos e o typecheck falha antes mesmo de
+      # chegar nos testes. É o mesmo `prisma generate` do build do Render.
+      - name: Gerar o client do Prisma
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm test
+
+      # O build fica por último de propósito: é o passo mais lento, e não vale
+      # esperar por ele para saber de um erro de tipo ou de um teste vermelho.
+      - name: Build
+        run: npm run build
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm test
+
+      # `VITE_API_URL` não é definida aqui. O app tem queda para `/api` na
+      # própria origem quando ela falta, que é exatamente o caminho usado em
+      # desenvolvimento — o build precisa continuar funcionando sem ela.
+      - name: Build
+        run: npm run build
+
+  formato:
+    name: Formatação
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Só confere, nunca corrige. Um job que reescreve arquivo esconde do
+      # autor o que mudou; aqui o erro aponta o arquivo e `npm run format`
+      # resolve na máquina de quem escreveu.
+      - name: Conferir a formatação
+        run: npm run format:check

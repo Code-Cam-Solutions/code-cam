@@ -71,10 +71,7 @@ export function ReadableProse({ text, className }: { text: string; className?: s
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {sentences.map((sentence, index) => (
-        <p
-          key={index}
-          className="flex items-start gap-2.5 text-base leading-relaxed text-text"
-        >
+        <p key={index} className="flex items-start gap-2.5 text-base leading-relaxed text-text">
           <ReadingMark kind="summary" className="mt-2" />
           <span>{sentence}</span>
         </p>

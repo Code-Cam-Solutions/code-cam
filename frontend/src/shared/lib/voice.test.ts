@@ -13,10 +13,7 @@ describe("pickVoice", () => {
    * O app lia resumo em português do Brasil com sotaque de Portugal.
    */
   it("prefere pt-BR mesmo quando pt-PT aparece primeiro", () => {
-    const escolhida = pickVoice([
-      voz("Joana", "pt-PT", true),
-      voz("Luciana", "pt-BR", true),
-    ]);
+    const escolhida = pickVoice([voz("Joana", "pt-PT", true), voz("Luciana", "pt-BR", true)]);
 
     expect(escolhida?.name).toBe("Luciana");
   });

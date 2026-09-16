@@ -58,10 +58,7 @@ export class NvidiaClient implements VisionProvider {
 
   constructor(config: ConfigService<Env, true>) {
     this.apiKey = config.get('NVIDIA_API_KEY', { infer: true });
-    this.candidates = buildCandidates(
-      config.get('NVIDIA_MODEL', { infer: true }),
-      FALLBACK_MODELS,
-    );
+    this.candidates = buildCandidates(config.get('NVIDIA_MODEL', { infer: true }), FALLBACK_MODELS);
   }
 
   get isConfigured(): boolean {

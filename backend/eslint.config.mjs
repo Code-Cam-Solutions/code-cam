@@ -14,7 +14,7 @@ export default tseslint.config(
         // `prisma/*.ts` fica fora do tsconfig do build (cujo rootDir é ./src),
         // mas ainda deve ser analisado pelo lint.
         projectService: {
-          allowDefaultProject: ['prisma/*.ts'],
+          allowDefaultProject: ["prisma/*.ts"],
         },
         tsconfigRootDir: import.meta.dirname,
       },

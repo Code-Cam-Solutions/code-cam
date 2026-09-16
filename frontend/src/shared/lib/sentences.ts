@@ -30,7 +30,7 @@ const MINIMO_DE_CARACTERES = 12;
 
 export function splitSentences(text: string): string[] {
   const limpo = text.trim();
-  if (limpo === '') return [];
+  if (limpo === "") return [];
 
   const partes = limpo
     .split(FIM_DE_FRASE)
