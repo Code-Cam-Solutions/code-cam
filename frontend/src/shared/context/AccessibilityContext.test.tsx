@@ -67,6 +67,16 @@ describe("AccessibilityProvider", () => {
     document.documentElement.removeAttribute("data-theme");
     document.documentElement.removeAttribute("data-contrast");
     document.documentElement.removeAttribute("data-dyslexic");
+    document.documentElement.style.removeProperty("--ds-bg");
+
+    // O index.html traz esta meta; em jsdom ela precisa ser montada à mão.
+    document.getElementById("meta-theme-color")?.remove();
+    const meta = document.createElement("meta");
+    meta.id = "meta-theme-color";
+    meta.setAttribute("name", "theme-color");
+    meta.setAttribute("content", "#0e0e13");
+    document.head.appendChild(meta);
+
     mockSystemTheme(false);
   });
 
@@ -166,5 +176,37 @@ describe("AccessibilityProvider", () => {
     renderProbe();
 
     expect(document.documentElement.dataset.fontSize).toBe("md");
+  });
+  /*
+   * Em um app instalado na tela de início não há barra de endereços: a faixa
+   * do topo é esta cor. Ela saía de duas metas presas a `prefers-color-scheme`,
+   * ou seja, do aparelho — então pedir tema claro num celular no escuro deixava
+   * uma faixa preta sobre uma tela clara, e a troca parecia não ter valido.
+   */
+  it("pinta a barra do sistema com a cor do tema escolhido, não a do aparelho", async () => {
+    mockSystemTheme(true); // aparelho no escuro
+    document.documentElement.style.setProperty("--ds-bg", "#f7f7fa");
+
+    renderProbe();
+    await userEvent.click(screen.getByRole("button", { name: "claro" }));
+
+    expect(document.getElementById("meta-theme-color")).toHaveAttribute("content", "#f7f7fa");
+  });
+
+  it("acompanha o alto contraste, que também troca o fundo", async () => {
+    document.documentElement.style.setProperty("--ds-bg", "#ffffff");
+
+    renderProbe();
+    await userEvent.click(screen.getByRole("button", { name: "contraste" }));
+
+    expect(document.getElementById("meta-theme-color")).toHaveAttribute("content", "#ffffff");
+  });
+
+  it("mantém a cor anterior quando o token ainda não foi resolvido", () => {
+    // Acontece antes de a folha de estilo ser analisada: sobrescrever com
+    // vazio deixaria a barra transparente, pior que a cor de partida.
+    renderProbe();
+
+    expect(document.getElementById("meta-theme-color")).toHaveAttribute("content", "#0e0e13");
   });
 });

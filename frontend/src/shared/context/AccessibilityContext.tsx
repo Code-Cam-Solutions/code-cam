@@ -105,6 +105,29 @@ function applyToDocument(settings: AccessibilitySettings, resolved: ResolvedThem
   } else {
     delete root.dataset.dyslexic;
   }
+
+  paintSystemBar(root);
+}
+
+/**
+ * Pinta a barra do sistema com a mesma cor do fundo da página.
+ *
+ * Em um app instalado na tela de início não existe barra de endereços: o que
+ * o usuário vê no topo é esta cor. Ela vinha de duas metas presas a
+ * `prefers-color-scheme`, ou seja, do aparelho — então quem usava o celular no
+ * escuro e escolhia tema claro ficava com uma faixa preta acima de uma tela
+ * clara, e a impressão era de que a troca não tinha valido.
+ *
+ * O valor sai do próprio token, e não de uma tabela paralela: assim a barra
+ * acompanha o tema, o alto contraste e qualquer mudança futura de paleta sem
+ * precisar ser lembrada.
+ */
+function paintSystemBar(root: HTMLElement) {
+  const meta = document.getElementById("meta-theme-color");
+  if (!meta) return;
+
+  const fundo = getComputedStyle(root).getPropertyValue("--ds-bg").trim();
+  if (fundo) meta.setAttribute("content", fundo);
 }
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
