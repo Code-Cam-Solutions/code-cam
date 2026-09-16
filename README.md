@@ -27,7 +27,7 @@ formato dos commits — e vale igual para pessoas e para agentes de IA.
 
 ### 1. O que você precisa antes
 
-- **Node.js 20+**
+- **Node.js 22.22+, 24.15+ ou 26+** — o piso vem do jsdom, usado nos testes do front; o CI roda no 24
 - **PostgreSQL 17** rodando na sua máquina
 - **Uma chave da NVIDIA** — opcional. Sem ela o app funciona de ponta a ponta
   com conteúdo de demonstração, o que basta para mexer na interface.
