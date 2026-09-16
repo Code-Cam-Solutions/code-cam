@@ -91,8 +91,25 @@ export class StatsService {
     since.setDate(since.getDate() - (days - 1));
     since.setHours(0, 0, 0, 0);
 
+    /*
+     * A dupla conversão de fuso não é redundância.
+     *
+     * A coluna é `timestamp without time zone` e guarda UTC. Sobre um valor sem
+     * fuso, `AT TIME ZONE 'America/Sao_Paulo'` *interpreta* o horário como se já
+     * fosse de São Paulo, em vez de convertê-lo para lá — o contrário do que se
+     * quer. O primeiro `AT TIME ZONE 'UTC'` diz de onde o valor vem; o segundo
+     * leva para onde o estudante está.
+     *
+     * Sem isso, toda revisão feita entre 21h e meia-noite caía no dia seguinte,
+     * porque em UTC a data já havia virado. Quebrava a sequência, o gráfico e o
+     * "revisados hoje" justamente no horário em que mais se estuda — e não
+     * aparecia em teste nenhum feito durante o dia.
+     */
     const rows = await this.prisma.$queryRaw<DayRow[]>`
-      SELECT to_char(("reviewedAt" AT TIME ZONE ${timezone})::date, 'YYYY-MM-DD') AS day,
+      SELECT to_char(
+               ("reviewedAt" AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date,
+               'YYYY-MM-DD'
+             ) AS day,
              COUNT(*)::int AS reviews
       FROM flashcard_reviews
       WHERE "userId" = ${userId}
