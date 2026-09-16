@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { liberarCamera, obterCamera } from "@/features/capture/lib/camera-stream";
 import { isBlurry, measureSharpness } from "@/features/capture/lib/image-quality";
 import { createThumbnail } from "@/features/capture/lib/thumbnail";
 
 export type CameraStatus = "requesting" | "active" | "error";
-export type FacingMode = "environment" | "user";
+export type { FacingMode } from "@/features/capture/lib/camera-stream";
+import type { FacingMode } from "@/features/capture/lib/camera-stream";
 
 export type CameraErrorType = "permission" | "not-found" | "not-supported" | "in-use" | "unknown";
 
@@ -122,34 +124,26 @@ export function useCamera() {
     }
 
     // O StrictMode monta, desmonta e remonta o componente em desenvolvimento.
-    // Sem esta bandeira o stream da primeira montagem ficaria aberto para
-    // sempre, prendendo a câmera e fazendo a segunda tentativa devolver quadros
-    // pretos em alguns aparelhos.
+    // A bandeira evita que a montagem descartada assuma o stream e escreva
+    // estado depois de já ter sido desfeita.
     let cancelled = false;
-    let opened: MediaStream | null = null;
+    let obtido = false;
 
     setStatus("requesting");
     setError(null);
 
     async function open() {
       try {
-        // `ideal` e não `exact`: em notebook não existe câmera traseira, e
-        // `exact` faria a chamada falhar em vez de cair na câmera disponível.
-        const media = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: facingMode },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        });
+        const media = await obterCamera(facingMode);
 
         if (cancelled) {
-          media.getTracks().forEach((track) => track.stop());
+          // Não encerra: o stream é compartilhado, e quem montar em seguida
+          // vai reaproveitá-lo. Devolvê-lo basta.
+          liberarCamera();
           return;
         }
 
-        opened = media;
+        obtido = true;
         setStream(media);
 
         // A lista de dispositivos só traz rótulos e entradas completas depois
@@ -173,7 +167,10 @@ export function useCamera() {
 
     return () => {
       cancelled = true;
-      opened?.getTracks().forEach((track) => track.stop());
+      // Liberar, não encerrar. Parar a última trilha custaria um prompt de
+      // permissão na próxima montagem — que é o que acontece o tempo todo no
+      // fluxo de várias fotos. Ver `camera-stream.ts`.
+      if (obtido) liberarCamera();
       setStream(null);
       setTorchOn(false);
     };

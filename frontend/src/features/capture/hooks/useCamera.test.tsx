@@ -1,5 +1,6 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { __reiniciarParaTeste } from "@/features/capture/lib/camera-stream";
 import { useCamera } from "./useCamera";
 
 /**
@@ -12,6 +13,7 @@ import { useCamera } from "./useCamera";
 
 interface FakeTrack {
   kind: string;
+  readyState: "live" | "ended";
   stop: ReturnType<typeof vi.fn>;
   getCapabilities: () => MediaTrackCapabilities;
   applyConstraints: ReturnType<typeof vi.fn>;
@@ -20,7 +22,10 @@ interface FakeTrack {
 function fakeStream(): { stream: MediaStream; track: FakeTrack } {
   const track: FakeTrack = {
     kind: "video",
-    stop: vi.fn(),
+    readyState: "live",
+    stop: vi.fn(function (this: FakeTrack) {
+      this.readyState = "ended";
+    }),
     getCapabilities: () => ({}),
     applyConstraints: vi.fn(() => Promise.resolve()),
   };
@@ -76,6 +81,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // O stream vive em módulo, fora do React: sem isto um teste entregaria a
+  // câmera já aberta ao seguinte.
+  __reiniciarParaTeste();
   vi.restoreAllMocks();
 });
 
@@ -142,7 +150,18 @@ describe("useCamera", () => {
     await expect(api.capturePhoto()).resolves.toBeNull();
   });
 
-  it("encerra as trilhas ao desmontar, liberando a câmera", async () => {
+  /*
+   * Este teste já afirmou o contrário: que desmontar parava as trilhas na
+   * hora. Parava mesmo — e custava um pedido de permissão por foto no Safari
+   * do iPhone, porque parar a última trilha encerra a sessão de captura e o
+   * `getUserMedia` seguinte volta a perguntar. Como o fluxo de várias fotos é
+   * `/camera` → `/camera/review` → `/camera`, o incômodo aparecia a cada volta.
+   *
+   * O stream agora vive em `camera-stream.ts` e é devolvido, não encerrado.
+   * Quem garante que ele não fica ligado para sempre é aquele módulo, coberto
+   * pelos próprios testes: carência, saída da aba e troca de câmera.
+   */
+  it("devolve a câmera ao desmontar sem encerrá-la, para a tela seguinte reaproveitar", async () => {
     const { stream, track } = fakeStream();
     getUserMedia.mockResolvedValue(stream);
 
@@ -153,8 +172,12 @@ describe("useCamera", () => {
 
     unmount();
 
+    expect(track.stop).not.toHaveBeenCalled();
+
+    // E remontar não pede a câmera de novo: é o mesmo stream de volta.
+    render(<Harness onRender={() => undefined} />);
     await waitFor(() => {
-      expect(track.stop).toHaveBeenCalled();
+      expect(getUserMedia).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/shared/context/AuthContext";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import { NotFoundPage } from "@/shared/components/NotFoundPage";
 import { OfflineBanner } from "@/shared/components/OfflineBanner";
+import { CloseCameraOnLeave } from "@/shared/components/CloseCameraOnLeave";
 import { StopSpeechOnNavigate } from "@/shared/components/StopSpeechOnNavigate";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { CameraPage } from "@/features/capture/pages/CameraPage";
@@ -49,6 +50,7 @@ function App() {
 
         <OfflineBanner />
         <StopSpeechOnNavigate />
+        <CloseCameraOnLeave />
 
         <Routes>
           <Route path="/login" element={<LoginPage />} />
