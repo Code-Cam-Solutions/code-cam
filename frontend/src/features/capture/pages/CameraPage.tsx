@@ -1,15 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  AlertTriangle,
-  Ear,
-  Images,
-  RefreshCcw,
-  RotateCcw,
-  SwitchCamera,
-  X,
-  Zap,
-} from "lucide-react";
+import { AlertTriangle, Images, RefreshCcw, RotateCcw, SwitchCamera, X, Zap } from "lucide-react";
 import { useCamera, type CapturedPhoto } from "@/features/capture/hooks/useCamera";
 import { MAX_PHOTOS_PER_SCAN } from "@/features/capture/lib/limits";
 import { useRouteState } from "@/shared/lib/navigation";
@@ -25,8 +16,6 @@ const FRAME_CORNERS = [
   "bottom-0 right-0 rounded-br-2xl border-b-2 border-r-2",
 ];
 
-const GUIDED_READING_KEY = "codecam-guided-capture";
-
 /** Botão circular sobre o visor: vidro escuro para não sumir na cena filmada. */
 const OVERLAY_BUTTON = cn(
   "grid size-12 place-items-center rounded-full",
@@ -35,14 +24,6 @@ const OVERLAY_BUTTON = cn(
   "transition-transform duration-150 ease-enter active:scale-90",
   "hover:bg-black/65",
 );
-
-function readGuidedPreference(): boolean {
-  try {
-    return localStorage.getItem(GUIDED_READING_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
 
 export function CameraPage() {
   const navigate = useNavigate();
@@ -68,47 +49,27 @@ export function CameraPage() {
   const [pageError, setPageError] = useState(scanError ?? "");
   const [capturing, setCapturing] = useState(false);
   const [flashing, setFlashing] = useState(false);
-  const [guided, setGuided] = useState(readGuidedPreference);
 
-  /**
-   * Leitura guiada: narra o estado da câmera para quem não enxerga o visor.
-   * É um preferência separada do TTS geral porque serve a um momento — a
-   * captura — e não ao conteúdo.
+  /*
+   * Narra o estado da câmera para quem não enxerga o visor.
+   *
+   * Isto já esteve atrás de um botão de "leitura guiada", só nesta tela. Era
+   * uma segunda chave para a mesma coisa: `speak` não fala nada quando a
+   * leitura em voz alta está desligada em Ajustes, então quem queria ouvir
+   * precisava ligar nos dois lugares — e quem só ligava aqui não entendia por
+   * que continuava mudo. Agora a narração segue o ajuste do app, como no resto
+   * das telas.
    */
-  const announce = useCallback(
-    (text: string) => {
-      if (guided) speak(text);
-    },
-    [guided, speak],
-  );
-
   useEffect(() => {
     if (status === "active") {
-      announce("Câmera pronta. Enquadre o material e toque no botão de capturar.");
+      speak("Câmera pronta. Enquadre o material e toque no botão de capturar.");
     }
     if (status === "error" && error) {
-      announce(error.message);
+      speak(error.message);
     }
-    // `announce` muda junto com a preferência; anunciar de novo nesse caso é
-    // justamente o comportamento desejado ao ligar a leitura guiada.
-  }, [status, error, announce]);
+  }, [status, error, speak]);
 
   useEffect(() => stopSpeaking, [stopSpeaking]);
-
-  function toggleGuided() {
-    const next = !guided;
-    setGuided(next);
-    try {
-      localStorage.setItem(GUIDED_READING_KEY, String(next));
-    } catch {
-      // Storage indisponível: a preferência vale para esta sessão.
-    }
-    if (next) {
-      speak("Leitura guiada ativada.");
-    } else {
-      stopSpeaking();
-    }
-  }
 
   /**
    * Soma a foto nova às que já existem e volta para a conferência.
@@ -132,10 +93,10 @@ export function CameraPage() {
       const photo = await capturePhoto();
       if (!photo) {
         setPageError("A câmera ainda não estava pronta. Tente capturar novamente.");
-        announce("A câmera ainda não estava pronta.");
+        speak("A câmera ainda não estava pronta.");
         return;
       }
-      announce(
+      speak(
         photo.blurry
           ? "Foto capturada, mas parece tremida. Revise antes de enviar."
           : "Foto capturada. Revise antes de enviar.",
@@ -183,21 +144,9 @@ export function CameraPage() {
             : "CodeCam"}
         </h1>
 
-        <button
-          type="button"
-          onClick={toggleGuided}
-          aria-pressed={guided}
-          className={cn(
-            "flex min-h-[2.25rem] items-center gap-1.5 rounded-full border px-3 text-xs font-medium",
-            "transition-colors duration-150",
-            guided
-              ? "border-accent/40 bg-accent text-accent-contrast"
-              : "border-border bg-surface text-text-muted hover:text-text",
-          )}
-        >
-          <Ear size={15} aria-hidden="true" />
-          Leitura guiada
-        </button>
+        {/* Espaçador do tamanho do botão de fechar: com `justify-between` e só
+            dois filhos, o título encostaria na borda direita. */}
+        <div className="size-11 shrink-0" aria-hidden="true" />
       </header>
 
       <main id="main-content" className="flex min-h-0 flex-1 flex-col">
